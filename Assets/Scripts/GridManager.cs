@@ -19,8 +19,8 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
     
     private Dictionary<Vector2Int, GridNode> grid = new Dictionary<Vector2Int, GridNode>();
     private LevelData currentLevelData;
-    public int width;
-    public int height;
+    [HideInInspector]public int width;
+    [HideInInspector]public int height;
 
     private void Start()
     {
