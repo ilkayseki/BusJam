@@ -1,39 +1,28 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class Character : MonoBehaviour
 {
     private GridNode currentNode;
-    private float cellSize => GridManager.Instance.cellSize;
+    private Renderer rend;
+    public BusColor CharacterColor;
+
+    private void Awake()
+    {
+        rend = GetComponentInChildren<Renderer>();
+    }
 
     public void Init(GridNode node)
     {
         currentNode = node;
+        SetColor(node.NodeColor);
     }
 
-    private void OnMouseDown()
+    public void SetColor(BusColor color)
     {
-        Debug.Log($"Karakter {currentNode.Position} tıklandı.");
-
-        if (currentNode.Position.y == 0)
-        {
-            Debug.Log("X=0 Ulaşıldı, Karakter siliniyor");
-            currentNode.SetOccupied(false, null);
-            Destroy(gameObject);
-        }
-        else
-        {
-            if (CanReachYZero())
-            {
-                Debug.Log("Yol var, kendi grid boşaltılıyor");
-                currentNode.SetOccupied(false, null);
-                Destroy(gameObject);
-            }
-            else
-            {
-                Debug.Log("Yol Yok");
-            }
-        }
+        CharacterColor = color;
+        if (rend == null) rend = GetComponent<Renderer>();
+        rend.material.color = (CharacterColor == BusColor.Red) ? Color.red : Color.blue;
     }
 
     private bool CanReachYZero()
@@ -65,5 +54,37 @@ public class Character : MonoBehaviour
         }
 
         return false;
+    }
+
+
+    private void OnMouseDown()
+    {
+        var bus = BusManager.Instance.GetActiveBus();
+
+        if (bus == null)
+        {
+            Debug.Log("Aktif bus yok.");
+            return;
+        }
+
+        // Öncelikle y=0 ya da canReachY kontrolü yap
+        if (!CanReachYZero())
+        {
+            Debug.Log("Karakter y=0 satırına erişemiyor, işlem iptal.");
+            return;
+        }
+
+        // Renk karşılaştırması
+        if (bus.BusColor == CharacterColor)
+        {
+            Debug.Log("Renkler aynı, karakter yok ediliyor.");
+            currentNode.SetOccupied(false, null);  // node boşaltılıyor
+            Destroy(gameObject);
+            bus.OccupySeat();
+        }
+        else
+        {
+            Debug.Log("Renk farklı, karakter silinmedi.");
+        }
     }
 }

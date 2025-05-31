@@ -37,22 +37,22 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
                 node.Position = gridPos;  // Burada y değişmeden kalıyor, matris pozisyonu normal
                 grid.Add(node.Position, node);
 
-                // Karakter spawn ve doluluk durumu aynı
+                // Renk ataması (örnek)
+                node.SetColor((Random.value > 0.5f) ? BusColor.Red : BusColor.Blue);
+                
                 GameObject charObj = Instantiate(characterPrefab, worldPos + Vector3.up * 0.5f, Quaternion.identity);
-                var character = charObj.GetComponent<Character>();
+                Character character = charObj.GetComponent<Character>();
                 character.Init(node);
                 node.SetOccupied(true, character);
+
             }
         }
     }
-
-
-
-
-
+    
     public GridNode GetNode(Vector2Int pos)
     {
         grid.TryGetValue(pos, out var node);
         return node;
     }
+
 }
