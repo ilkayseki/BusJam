@@ -550,14 +550,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4d25fff662aa6949bb2c79264595a43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 5
-  height: 5
+  defaultWidth: 5
+  defaultHeight: 5
   cellSize: 1.15
   gridNodePrefab: {fileID: 9198221246259626440, guid: 1b7651dea811b2a4b96fc08c1eb21418,
     type: 3}
   characterPrefab: {fileID: 2247501272789242511, guid: 6a88cdd4a01677a47ade940445c4d7da,
     type: 3}
   colorData: {fileID: 11400000, guid: 916d3c308a4dc814b981ac496b3fb9e4, type: 2}
+  defaultLevelData: {fileID: 4900000, guid: c6490cbe5d6966e4bbb06c04398bd69c, type: 3}
+  height: 5
 --- !u!4 &908996297
 Transform:
   m_ObjectHideFlags: 0

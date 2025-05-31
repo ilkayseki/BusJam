@@ -1,18 +1,20 @@
 using UnityEngine;
+[RequireComponent(typeof(BoxCollider))]
 
 public class GridNode : MonoBehaviour
 {
-    public Vector2Int Position;
     public bool IsOccupied;
     public Character Occupant;
+    public Vector2Int Position;
     public string NodeColor;
     
     [SerializeField] private ColorData colorData;
-    Renderer rend;
+    private Renderer rend;
 
     private void Awake()
     {
         rend = GetComponent<Renderer>();
+        GetComponent<BoxCollider>().size = new Vector3(1, 0.1f, 1);
     }
 
     public void SetOccupied(bool occupied, Character character)
@@ -27,7 +29,7 @@ public class GridNode : MonoBehaviour
         if (data != null) colorData = data;
         NodeColor = color;
         if (rend == null) rend = GetComponent<Renderer>();
-        rend.material.color = colorData.GetColor(NodeColor);
+        if (colorData != null) rend.material.color = colorData.GetColor(NodeColor);
     }
     
 }
