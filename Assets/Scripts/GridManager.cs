@@ -1,142 +1,58 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class GridManager : MonoBehaviourSingleton<GridManager>
 {
-    public static GridManager Instance { get; private set; }
+    public int width = 5;
+    public int height = 5;
+    public float cellSize = 2f;
 
-    [SerializeField] private GameObject gridCellPrefab;
-    [SerializeField] private GameObject characterPrefab;
-    [SerializeField] private int rows = 5, columns = 5;
-    [SerializeField] private float spacing = 1.5f;
-    [SerializeField] private Color[] availableColors;
-    [SerializeField] private WaitingArea waitingArea;
+    public GameObject gridNodePrefab;
+    public GameObject characterPrefab;
 
-    private GridCell[,] grid;
+    private Dictionary<Vector2Int, GridNode> grid = new Dictionary<Vector2Int, GridNode>();
 
-    private void Awake() => Instance = this;
-
-    private void Start() => GenerateGrid();
-
-    private void GenerateGrid()
+    private void Start()
     {
-        grid = new GridCell[rows, columns];
+        CreateGrid();
+    }
 
-        for (int r = rows - 1; r >= 0; r--)  // Tersten başla, 0'a kadar düş
+    private void CreateGrid()
+    {
+        for (int x = 0; x < width; x++)
         {
-            for (int c = 0; c < columns; c++)
+            for (int y = 0; y < height; y++)
             {
-                Vector3 cellPos = new Vector3(c * spacing, 0, (rows - 1 - r) * spacing);
-                GameObject cellObj = Instantiate(gridCellPrefab, cellPos, Quaternion.identity, transform);
-                GridCell cell = cellObj.GetComponent<GridCell>();
+                // y'nin tersini alıyoruz
+                int flippedY = (height - 1) - y;
 
-                Color color = availableColors[Random.Range(0, availableColors.Length)];
-                cell.Initialize(new Vector2Int(r, c), color);
-                grid[r, c] = cell;
+                // Grid pozisyonu orijinal koordinat ile değil, ters y ile
+                Vector2Int gridPos = new Vector2Int(x, y);
 
-                SpawnCharacter(cell);
+                // Fiziksel pozisyon ise z ekseninde ters çevrilmiş y yani flippedY kullanılarak oluşturuluyor
+                Vector3 worldPos = new Vector3(x * cellSize, 0, flippedY * cellSize);
+
+                GameObject nodeObj = Instantiate(gridNodePrefab, worldPos, Quaternion.identity);
+                var node = nodeObj.GetComponent<GridNode>();
+                node.Position = gridPos;  // Burada y değişmeden kalıyor, matris pozisyonu normal
+                grid.Add(node.Position, node);
+
+                // Karakter spawn ve doluluk durumu aynı
+                GameObject charObj = Instantiate(characterPrefab, worldPos + Vector3.up * 0.5f, Quaternion.identity);
+                var character = charObj.GetComponent<Character>();
+                character.Init(node);
+                node.SetOccupied(true, character);
             }
         }
     }
 
-    private void SpawnCharacter(GridCell cell)
+
+
+
+
+    public GridNode GetNode(Vector2Int pos)
     {
-        Vector3 spawnPos = cell.transform.position + Vector3.up * 0.5f;
-        GameObject charObj = Instantiate(characterPrefab, spawnPos, Quaternion.identity);
-        Character character = charObj.GetComponent<Character>();
-        character.Initialize(cell, waitingArea);
-        cell.SetOccupied(true, character);
+        grid.TryGetValue(pos, out var node);
+        return node;
     }
-
-    public void GameOver() => Debug.Log("Bekleme alanı doldu, oyun bitti!");
-    public void CheckWinCondition()
-    {
-        if (BusManager.Instance.AllBusesFull()) Debug.Log("Tüm otobüsler doldu, oyunu kazandınız!");
-    }
-    public bool IsInsideGrid(Vector2Int pos)
-    {
-        return pos.x >= 0 && pos.x < rows && pos.y >= 0 && pos.y < columns;
-    }
-
-    public GridCell GetCellAtPosition(Vector2Int pos)
-    {
-        if (IsInsideGrid(pos))
-            return grid[pos.x, pos.y];
-        return null;
-    }
-    public bool IsValidPosition(Vector2Int pos)
-    {
-        return pos.x >= 0 && pos.x < grid.GetLength(0) && pos.y >= 0 && pos.y < grid.GetLength(1);
-    }
-
-    public GridCell GetGridCell(Vector2Int pos)
-    {
-        if (IsValidPosition(pos))
-            return grid[pos.x, pos.y];
-        return null;
-    }
-    
-    // Grid boyutları: rows = X, columns = Y
-
-    public List<GridCell> FindPathToXZero(GridCell startCell)
-    {
-        int maxX = grid.GetLength(0);
-        int maxY = grid.GetLength(1);
-
-        Vector2Int startPos = startCell.GridPosition;
-
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-
-        queue.Enqueue(startPos);
-        cameFrom[startPos] = startPos;
-
-        while (queue.Count > 0)
-        {
-            Vector2Int current = queue.Dequeue();
-
-            // Eğer X=0 ise hedefe ulaştık
-            if (current.x == 0)
-            {
-                // Yol geri izlenir
-                List<GridCell> path = new List<GridCell>();
-                Vector2Int temp = current;
-
-                while (temp != startPos)
-                {
-                    path.Add(grid[temp.x, temp.y]);
-                    temp = cameFrom[temp];
-                }
-                path.Reverse();
-                return path;
-            }
-
-            // Komşuları kontrol et (sol, sağ, yukarı, aşağı)
-            Vector2Int[] neighbors = new Vector2Int[]
-            {
-                new Vector2Int(current.x - 1, current.y), // sol (X - 1)
-                new Vector2Int(current.x + 1, current.y), // sağ (X + 1)
-                new Vector2Int(current.x, current.y - 1), // aşağı (Y - 1)
-                new Vector2Int(current.x, current.y + 1)  // yukarı (Y + 1)
-            };
-
-            foreach (var neighbor in neighbors)
-            {
-                if (neighbor.x >= 0 && neighbor.x < maxX && neighbor.y >= 0 && neighbor.y < maxY)
-                {
-                    var neighborCell = grid[neighbor.x, neighbor.y];
-                    // Boş olmayan hücreler engel (doluluk kontrolü)
-                    if (!neighborCell.IsOccupied && !cameFrom.ContainsKey(neighbor))
-                    {
-                        queue.Enqueue(neighbor);
-                        cameFrom[neighbor] = current;
-                    }
-                }
-            }
-        }
-
-        // Yol bulunamadı
-        return null;
-    }
-
 }

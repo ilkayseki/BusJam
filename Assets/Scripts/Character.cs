@@ -1,109 +1,69 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
-public enum CharacterState { Idle, MovingToBus, WaitingInQueue, Boarded, Blocked }
-
-[RequireComponent(typeof(CharacterController))]
 public class Character : MonoBehaviour
 {
-    public Color CharacterColor { get; private set; }
-    public CharacterState State { get; private set; } = CharacterState.Idle;
-    public GridCell HomeCell { get; private set; }
+    private GridNode currentNode;
+    private float cellSize => GridManager.Instance.cellSize;
 
-    private CharacterController controller;
-    private Vector3 targetPosition;
-    private float moveSpeed = 3f;
-    private WaitingArea waitingArea;
-
-    public void Initialize(GridCell cell, WaitingArea waiting)
+    public void Init(GridNode node)
     {
-        HomeCell = cell;
-        CharacterColor = cell.CellColor;
-        GetComponentInChildren<Renderer>().material.color = CharacterColor;
-        controller = GetComponent<CharacterController>();
-
-        waitingArea = waiting;
-    }
-
-    private void Update()
-    {
-        if (State == CharacterState.MovingToBus)
-            MoveTowardsTarget();
+        currentNode = node;
     }
 
     private void OnMouseDown()
     {
-        if (State == CharacterState.Idle)
+        Debug.Log($"Karakter {currentNode.Position} tıklandı.");
+
+        if (currentNode.Position.y == 0)
         {
-            if (HomeCell.GridPosition.x == 0)
+            Debug.Log("X=0 Ulaşıldı, Karakter siliniyor");
+            currentNode.SetOccupied(false, null);
+            Destroy(gameObject);
+        }
+        else
+        {
+            if (CanReachYZero())
             {
-                Debug.Log("Ulaşıldı!");
-                HomeCell.SetOccupied(false, null);
-                // Karakter yok olabilir veya başka işlem
+                Debug.Log("Yol var, kendi grid boşaltılıyor");
+                currentNode.SetOccupied(false, null);
                 Destroy(gameObject);
-                State = CharacterState.Idle;
-                return;
             }
-
-            List<GridCell> path = GridManager.Instance.FindPathToXZero(HomeCell);
-
-            if (path == null || path.Count == 0)
+            else
             {
-                Debug.Log("Yol yok!");
-                return;
+                Debug.Log("Yol Yok");
             }
-
-            // Yol var, karakteri sırayla bu hücrelere götür
-            StartCoroutine(MoveAlongPath(path));
         }
     }
 
-    private IEnumerator MoveAlongPath(List<GridCell> path)
+    private bool CanReachYZero()
     {
-        State = CharacterState.MovingToBus; // hareket halinde
+        Queue<GridNode> queue = new Queue<GridNode>();
+        HashSet<GridNode> visited = new HashSet<GridNode>();
 
-        foreach (var cell in path)
+        queue.Enqueue(currentNode);
+        visited.Add(currentNode);
+
+        Vector2Int[] directions = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+
+        while (queue.Count > 0)
         {
-            Vector3 targetPos = cell.transform.position + Vector3.up * 0.5f;
+            var node = queue.Dequeue();
+            if (node.Position.y == 0) return true;
 
-            while (Vector3.Distance(transform.position, targetPos) > 0.1f)
+            foreach (var dir in directions)
             {
-                Vector3 dir = (targetPos - transform.position).normalized;
-                controller.Move(dir * moveSpeed * Time.deltaTime);
-                yield return null;
+                var neighborPos = node.Position + dir;
+                var neighbor = GridManager.Instance.GetNode(neighborPos);
+
+                if (neighbor != null && !neighbor.IsOccupied && !visited.Contains(neighbor))
+                {
+                    queue.Enqueue(neighbor);
+                    visited.Add(neighbor);
+                }
             }
-
-            // Önceki hücreyi boşalt, yeni hücreyi dolu yap
-            HomeCell.SetOccupied(false, null);
-            cell.SetOccupied(true, this);
-            HomeCell = cell;
         }
 
-        // X=0'a ulaştık
-        Debug.Log("Ulaşıldı!");
-        HomeCell.SetOccupied(false, null);
-        State = CharacterState.Idle;
-    }
-
-
-
-    public void MoveTo(Vector3 position)
-    {
-        targetPosition = position;
-        State = CharacterState.MovingToBus;
-    }
-
-    private void MoveTowardsTarget()
-    {
-        Vector3 direction = (targetPosition - transform.position).normalized;
-        controller.Move(direction * moveSpeed * Time.deltaTime);
-
-        if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
-        {
-            State = CharacterState.Boarded;
-            Debug.Log("Karakter otobüse bindi.");
-            GridManager.Instance.CheckWinCondition();
-        }
+        return false;
     }
 }
