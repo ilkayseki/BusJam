@@ -1,114 +1,109 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-public enum CharacterState
-{
-    Idle,
-    MovingToBus,
-    WaitingInQueue,
-    Boarded,
-    Blocked
-}
+public enum CharacterState { Idle, MovingToBus, WaitingInQueue, Boarded, Blocked }
 
 [RequireComponent(typeof(CharacterController))]
 public class Character : MonoBehaviour
 {
-    public GridCell currentCell;
-    public Color characterColor;
-    public CharacterState state = CharacterState.Idle;
-
-    private GridManager gridManager;
-    private BusManager busManager;
-    private WaitingArea waitingArea;
+    public Color CharacterColor { get; private set; }
+    public CharacterState State { get; private set; } = CharacterState.Idle;
+    public GridCell HomeCell { get; private set; }
 
     private CharacterController controller;
     private Vector3 targetPosition;
-    public float moveSpeed = 3f;
+    private float moveSpeed = 3f;
+    private WaitingArea waitingArea;
 
-    public void Initialize(GridCell cell)
+    public void Initialize(GridCell cell, WaitingArea waiting)
     {
-        currentCell = cell;
-        characterColor = cell.cellColor;
-        GetComponentInChildren<Renderer>().material.color = characterColor;
-        gridManager = FindObjectOfType<GridManager>();
-        busManager = FindObjectOfType<BusManager>();
-        waitingArea = FindObjectOfType<WaitingArea>();
-
+        HomeCell = cell;
+        CharacterColor = cell.CellColor;
+        GetComponentInChildren<Renderer>().material.color = CharacterColor;
         controller = GetComponent<CharacterController>();
+
+        waitingArea = waiting;
     }
 
     private void Update()
     {
-        if (state == CharacterState.MovingToBus)
-        {
+        if (State == CharacterState.MovingToBus)
             MoveTowardsTarget();
+    }
+
+    private void OnMouseDown()
+    {
+        if (State == CharacterState.Idle)
+        {
+            if (HomeCell.GridPosition.x == 0)
+            {
+                Debug.Log("Ulaşıldı!");
+                HomeCell.SetOccupied(false, null);
+                // Karakter yok olabilir veya başka işlem
+                Destroy(gameObject);
+                State = CharacterState.Idle;
+                return;
+            }
+
+            List<GridCell> path = GridManager.Instance.FindPathToXZero(HomeCell);
+
+            if (path == null || path.Count == 0)
+            {
+                Debug.Log("Yol yok!");
+                return;
+            }
+
+            // Yol var, karakteri sırayla bu hücrelere götür
+            StartCoroutine(MoveAlongPath(path));
         }
     }
 
-    void OnMouseDown()
+    private IEnumerator MoveAlongPath(List<GridCell> path)
     {
-        HandleClick();
+        State = CharacterState.MovingToBus; // hareket halinde
+
+        foreach (var cell in path)
+        {
+            Vector3 targetPos = cell.transform.position + Vector3.up * 0.5f;
+
+            while (Vector3.Distance(transform.position, targetPos) > 0.1f)
+            {
+                Vector3 dir = (targetPos - transform.position).normalized;
+                controller.Move(dir * moveSpeed * Time.deltaTime);
+                yield return null;
+            }
+
+            // Önceki hücreyi boşalt, yeni hücreyi dolu yap
+            HomeCell.SetOccupied(false, null);
+            cell.SetOccupied(true, this);
+            HomeCell = cell;
+        }
+
+        // X=0'a ulaştık
+        Debug.Log("Ulaşıldı!");
+        HomeCell.SetOccupied(false, null);
+        State = CharacterState.Idle;
     }
 
-    void HandleClick()
+
+
+    public void MoveTo(Vector3 position)
     {
-        if (state == CharacterState.Idle)
-        {
-            if (gridManager.CanMoveToBus(currentCell))
-            {
-                state = CharacterState.MovingToBus;
-                targetPosition = gridManager.GetBusPositionForColor(characterColor);
-            }
-            else
-            {
-                state = CharacterState.Blocked;
-                Debug.Log("Önünde dolu grid var.");
-            }
-        }
-        else if (state == CharacterState.MovingToBus)
-        {
-            // Eğer hedefe ulaştıysan:
-            if (Vector3.Distance(transform.position, targetPosition) < 0.5f)
-            {
-                if (busManager.TryBoardCharacter(this))
-                {
-                    state = CharacterState.Boarded;
-                    Destroy(gameObject);
-                }
-                else
-                {
-                    if (!waitingArea.IsFull())
-                    {
-                        waitingArea.AddToWaitingArea(this);
-                        state = CharacterState.WaitingInQueue;
-                        Debug.Log("Bekleme alanına yönlendirildi.");
-                    }
-                    else
-                    {
-                        gridManager.GameOver();
-                    }
-                }
-            }
-        }
-        else if (state == CharacterState.WaitingInQueue)
-        {
-            if (waitingArea.IsFull())
-            {
-                gridManager.GameOver();
-            }
-        }
+        targetPosition = position;
+        State = CharacterState.MovingToBus;
     }
 
     private void MoveTowardsTarget()
     {
         Vector3 direction = (targetPosition - transform.position).normalized;
-        Vector3 move = direction * moveSpeed * Time.deltaTime;
+        controller.Move(direction * moveSpeed * Time.deltaTime);
 
-        controller.Move(move);
-
-        // Hedefe çok yakınsak doğrudan hedef konuma ayarla (titremesin)
         if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
         {
-            transform.position = targetPosition;
+            State = CharacterState.Boarded;
+            Debug.Log("Karakter otobüse bindi.");
+            GridManager.Instance.CheckWinCondition();
         }
     }
 }

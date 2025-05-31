@@ -1,160 +1,142 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GridManager : MonoBehaviour
+public class GridManager : MonoBehaviourSingleton<GridManager>
 {
-    [Header("Grid Settings")]
-    public GameObject gridCellPrefab;
-    public int rows = 10;
-    public int columns = 10;
-    public float spacing = 1.2f;
+    public static GridManager Instance { get; private set; }
 
-    [Header("Color Settings")]
-    public Color[] availableColors;
-
-    [Header("Character")]
-    public GameObject characterPrefab;
-
-    [Header("Bus Settings")]
-    public GameObject busPrefab;
-    [SerializeField] private Transform busParent;
-    public int busCount = 3;
-    public float busSpacing = 2f; // Otobüsler arası boşluk
+    [SerializeField] private GameObject gridCellPrefab;
+    [SerializeField] private GameObject characterPrefab;
+    [SerializeField] private int rows = 5, columns = 5;
+    [SerializeField] private float spacing = 1.5f;
+    [SerializeField] private Color[] availableColors;
+    [SerializeField] private WaitingArea waitingArea;
 
     private GridCell[,] grid;
-    private List<GameObject> buses = new List<GameObject>();
 
-    private List<Character> waitingAreaCharacters = new List<Character>();
-    
-    void Start()
-    {
-        GenerateGrid();
-        SpawnBuses();
-    }
+    private void Awake() => Instance = this;
 
-    void GenerateGrid()
+    private void Start() => GenerateGrid();
+
+    private void GenerateGrid()
     {
         grid = new GridCell[rows, columns];
 
-        for (int row = 0; row < rows; row++)
+        for (int r = rows - 1; r >= 0; r--)  // Tersten başla, 0'a kadar düş
         {
-            for (int col = 0; col < columns; col++)
+            for (int c = 0; c < columns; c++)
             {
-                Vector3 pos = new Vector3(col * spacing, 0, row * spacing);
-                GameObject cellObj = Instantiate(gridCellPrefab, pos, Quaternion.identity, transform);
+                Vector3 cellPos = new Vector3(c * spacing, 0, (rows - 1 - r) * spacing);
+                GameObject cellObj = Instantiate(gridCellPrefab, cellPos, Quaternion.identity, transform);
                 GridCell cell = cellObj.GetComponent<GridCell>();
 
-                Color randomColor = availableColors[Random.Range(0, availableColors.Length)];
-                cell.Initialize(new Vector2Int(row, col), randomColor);
+                Color color = availableColors[Random.Range(0, availableColors.Length)];
+                cell.Initialize(new Vector2Int(r, c), color);
+                grid[r, c] = cell;
 
-                grid[row, col] = cell;
-
-                CreateCharacterOnCell(cell);
+                SpawnCharacter(cell);
             }
         }
     }
 
-    void CreateCharacterOnCell(GridCell cell)
+    private void SpawnCharacter(GridCell cell)
     {
         Vector3 spawnPos = cell.transform.position + Vector3.up * 0.5f;
-        GameObject characterGO = Instantiate(characterPrefab, spawnPos, Quaternion.identity);
-        characterGO.GetComponentInChildren<Renderer>().material.color = cell.cellColor;
-        Character character = characterGO.GetComponent<Character>();
-        character.Initialize(cell);
+        GameObject charObj = Instantiate(characterPrefab, spawnPos, Quaternion.identity);
+        Character character = charObj.GetComponent<Character>();
+        character.Initialize(cell, waitingArea);
+        cell.SetOccupied(true, character);
     }
 
-    void SpawnBuses()
+    public void GameOver() => Debug.Log("Bekleme alanı doldu, oyun bitti!");
+    public void CheckWinCondition()
     {
-        if (busPrefab == null || busParent == null)
-        {
-            Debug.LogError("BusPrefab veya BusParent atanmadı!");
-            return;
-        }
-
-        buses.Clear();
-
-        // İlk otobüs pozisyonu: busParent pozisyonu
-        Vector3 basePos = busParent.position;
-
-        // Otobüs prefabının genişliği alınmalı (localScale x veya collider)
-        float busWidth = busPrefab.GetComponent<Renderer>().bounds.size.x;
-
-        for (int i = 0; i < busCount; i++)
-        {
-            Vector3 spawnPos = basePos + new Vector3(-i * (busWidth + busSpacing), 0, 0);
-            GameObject bus = Instantiate(busPrefab, spawnPos, Quaternion.identity, busParent);
-            buses.Add(bus);
-
-            // Otobüs renklerini rastgele veya sırayla ver (örnek):
-            Color busColor = availableColors[i % availableColors.Length];
-            SetBusColor(bus, busColor);
-        }
+        if (BusManager.Instance.AllBusesFull()) Debug.Log("Tüm otobüsler doldu, oyunu kazandınız!");
+    }
+    public bool IsInsideGrid(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < rows && pos.y >= 0 && pos.y < columns;
     }
 
-    void SetBusColor(GameObject bus, Color color)
+    public GridCell GetCellAtPosition(Vector2Int pos)
     {
-        Renderer rend = bus.GetComponent<Renderer>();
-        if (rend != null)
-        {
-            rend.material.color = color;
-        }
+        if (IsInsideGrid(pos))
+            return grid[pos.x, pos.y];
+        return null;
+    }
+    public bool IsValidPosition(Vector2Int pos)
+    {
+        return pos.x >= 0 && pos.x < grid.GetLength(0) && pos.y >= 0 && pos.y < grid.GetLength(1);
     }
 
-    // Bu fonksiyon, karakterin rengindeki otobüsün pozisyonunu döndürür.
-    public Vector3 GetBusPositionForColor(Color characterColor)
+    public GridCell GetGridCell(Vector2Int pos)
     {
-        foreach (var bus in buses)
+        if (IsValidPosition(pos))
+            return grid[pos.x, pos.y];
+        return null;
+    }
+    
+    // Grid boyutları: rows = X, columns = Y
+
+    public List<GridCell> FindPathToXZero(GridCell startCell)
+    {
+        int maxX = grid.GetLength(0);
+        int maxY = grid.GetLength(1);
+
+        Vector2Int startPos = startCell.GridPosition;
+
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+
+        queue.Enqueue(startPos);
+        cameFrom[startPos] = startPos;
+
+        while (queue.Count > 0)
         {
-            Renderer rend = bus.GetComponent<Renderer>();
-            if (rend != null && rend.material.color == characterColor)
+            Vector2Int current = queue.Dequeue();
+
+            // Eğer X=0 ise hedefe ulaştık
+            if (current.x == 0)
             {
-                return bus.transform.position;
+                // Yol geri izlenir
+                List<GridCell> path = new List<GridCell>();
+                Vector2Int temp = current;
+
+                while (temp != startPos)
+                {
+                    path.Add(grid[temp.x, temp.y]);
+                    temp = cameFrom[temp];
+                }
+                path.Reverse();
+                return path;
+            }
+
+            // Komşuları kontrol et (sol, sağ, yukarı, aşağı)
+            Vector2Int[] neighbors = new Vector2Int[]
+            {
+                new Vector2Int(current.x - 1, current.y), // sol (X - 1)
+                new Vector2Int(current.x + 1, current.y), // sağ (X + 1)
+                new Vector2Int(current.x, current.y - 1), // aşağı (Y - 1)
+                new Vector2Int(current.x, current.y + 1)  // yukarı (Y + 1)
+            };
+
+            foreach (var neighbor in neighbors)
+            {
+                if (neighbor.x >= 0 && neighbor.x < maxX && neighbor.y >= 0 && neighbor.y < maxY)
+                {
+                    var neighborCell = grid[neighbor.x, neighbor.y];
+                    // Boş olmayan hücreler engel (doluluk kontrolü)
+                    if (!neighborCell.IsOccupied && !cameFrom.ContainsKey(neighbor))
+                    {
+                        queue.Enqueue(neighbor);
+                        cameFrom[neighbor] = current;
+                    }
+                }
             }
         }
 
-        // Eğer otobüs yoksa örnek bir pozisyon döndür
-        return busParent.position + new Vector3(0, 0, columns * spacing + 5);
+        // Yol bulunamadı
+        return null;
     }
 
-    public bool CanMoveToBus(GridCell cell)
-    {
-        Vector2Int pos = cell.gridPosition;
-
-        // Z ekseninde ilerideki hücreler boş mu kontrolü
-        for (int z = pos.y + 1; z < columns; z++)
-        {
-            if (grid[pos.x, z].isOccupied)
-                return false;
-        }
-        return true;
-    }
-
-    public bool IsWaitingAreaFull()
-    {
-        return waitingAreaCharacters.Count >= 4;
-    }
-
-    public void AddCharacterToWaitingArea(Character character)
-    {
-        if (!waitingAreaCharacters.Contains(character))
-            waitingAreaCharacters.Add(character);
-    }
-
-    public void RemoveCharacterFromWaitingArea(Character character)
-    {
-        if (waitingAreaCharacters.Contains(character))
-            waitingAreaCharacters.Remove(character);
-    }
-
-    public void GameOver()
-    {
-        Debug.Log("Game Over! Bekleme alanı doldu.");
-        // Buraya oyun bitti işlemleri gelecek
-    }
-
-    public void WinGame()
-    {
-        Debug.Log("Tebrikler! Tüm otobüsler bitti, oyun kazanıldı!");
-        // Kazanma ekranı veya sonraki aşama
-    }
 }

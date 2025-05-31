@@ -3,18 +3,18 @@ using System.Collections.Generic;
 
 public class WaitingArea : MonoBehaviour
 {
-    public int capacity = 4;
+    [SerializeField] private int capacity = 4;
     private List<Character> waitingCharacters = new List<Character>();
 
-    public void AddToWaitingArea(Character character)
-    {
-        waitingCharacters.Add(character);
-        Debug.Log("Karakter bekleme alanına alındı.");
-    }
+    public bool IsFull => waitingCharacters.Count >= capacity;
 
-    public bool IsFull()
+    public void AddCharacter(Character character)
     {
-        return waitingCharacters.Count >= capacity;
+        if (!IsFull)
+        {
+            waitingCharacters.Add(character);
+            Debug.Log("Karakter bekleme alanına eklendi.");
+        }
     }
 
     public void RemoveCharacter(Character character)
@@ -22,7 +22,7 @@ public class WaitingArea : MonoBehaviour
         waitingCharacters.Remove(character);
     }
 
-    public void ClearWaitingArea()
+    public void Clear()
     {
         waitingCharacters.Clear();
     }

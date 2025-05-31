@@ -334,13 +334,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 877f0dfdc82aaf149bec2d1d88a1b37e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  busPrefab: {fileID: 9198221246259626440, guid: 4c658698349f8904ea4cc07a9fc09018,
-    type: 3}
-  busesData:
-  - color: {r: 1, g: 0, b: 0, a: 0}
+  busPrefab: {fileID: 0}
+  busParent: {fileID: 0}
+  spacing: 2
+  busesData: []
   seatsPerBus: 4
-  busParent: {fileID: 396337858}
-  spacing: 1
 --- !u!4 &396337858
 Transform:
   m_ObjectHideFlags: 0
@@ -554,19 +552,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridCellPrefab: {fileID: 9198221246259626440, guid: 1b7651dea811b2a4b96fc08c1eb21418,
     type: 3}
+  characterPrefab: {fileID: 2247501272789242511, guid: 6a88cdd4a01677a47ade940445c4d7da,
+    type: 3}
   rows: 5
   columns: 5
-  spacing: 1.2
+  spacing: 1.5
   availableColors:
   - {r: 1, g: 0, b: 0, a: 0}
   - {r: 0, g: 0, b: 1, a: 0}
-  characterPrefab: {fileID: 2247501272789242511, guid: 6a88cdd4a01677a47ade940445c4d7da,
-    type: 3}
-  busPrefab: {fileID: 9198221246259626440, guid: 4c658698349f8904ea4cc07a9fc09018,
-    type: 3}
-  busParent: {fileID: 396337858}
-  busCount: 3
-  busSpacing: 2
+  waitingArea: {fileID: 245772945}
 --- !u!4 &908996297
 Transform:
   m_ObjectHideFlags: 0
