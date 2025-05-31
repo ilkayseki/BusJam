@@ -5,24 +5,27 @@ public class Character : MonoBehaviour
 {
     private GridNode currentNode;
     private Renderer rend;
-    public BusColor CharacterColor;
+    public string CharacterColor;
+    
+    [SerializeField] private ColorData colorData;
 
     private void Awake()
     {
         rend = GetComponentInChildren<Renderer>();
     }
 
-    public void Init(GridNode node)
+    public void Init(GridNode node, ColorData data)
     {
+        colorData = data;
         currentNode = node;
         SetColor(node.NodeColor);
     }
 
-    public void SetColor(BusColor color)
+    public void SetColor(string color)
     {
         CharacterColor = color;
         if (rend == null) rend = GetComponent<Renderer>();
-        rend.material.color = (CharacterColor == BusColor.Red) ? Color.red : Color.blue;
+        rend.material.color = colorData.GetColor(color);
     }
 
     private bool CanReachYZero()
@@ -56,7 +59,6 @@ public class Character : MonoBehaviour
         return false;
     }
 
-
     private void OnMouseDown()
     {
         var bus = BusManager.Instance.GetActiveBus();
@@ -67,18 +69,16 @@ public class Character : MonoBehaviour
             return;
         }
 
-        // Öncelikle y=0 ya da canReachY kontrolü yap
         if (!CanReachYZero())
         {
             Debug.Log("Karakter y=0 satırına erişemiyor, işlem iptal.");
             return;
         }
 
-        // Renk karşılaştırması
         if (bus.BusColor == CharacterColor)
         {
             Debug.Log("Renkler aynı, karakter yok ediliyor.");
-            currentNode.SetOccupied(false, null);  // node boşaltılıyor
+            currentNode.SetOccupied(false, null);
             Destroy(gameObject);
             bus.OccupySeat();
         }

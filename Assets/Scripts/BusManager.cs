@@ -5,6 +5,8 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
 {
     public GameObject busPrefab;
     public int busCount = 3;
+    public ColorData colorData;
+    
     private Queue<Bus> busQueue = new Queue<Bus>();
     private Bus activeBus;
 
@@ -21,8 +23,8 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
             GameObject busObj = Instantiate(busPrefab, transform.position, Quaternion.identity);
             busObj.transform.parent = this.transform;
             Bus bus = busObj.GetComponent<Bus>();
-            BusColor color = (Random.value > 0.5f) ? BusColor.Red : BusColor.Blue;
-            bus.Init(color);
+            string color = colorData.GetRandomColorName();
+            bus.Init(color, colorData);
             bus.gameObject.SetActive(false);
             busQueue.Enqueue(bus);
         }

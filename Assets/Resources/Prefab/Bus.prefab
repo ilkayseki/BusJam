@@ -118,6 +118,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a2ffe5b92f7b7b42b9b6a9c5e6de5c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: 0
-  capacity: 2
-  occupiedSeats: 0
+  BusColor: 0
+  seatCount: 2
+  colorData: {fileID: 11400000, guid: 916d3c308a4dc814b981ac496b3fb9e4, type: 2}

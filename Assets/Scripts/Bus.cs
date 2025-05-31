@@ -1,20 +1,22 @@
 using UnityEngine;
-public enum BusColor { Red, Blue }
+
 public class Bus : MonoBehaviour
 {
-    public BusColor BusColor;
+    public string BusColor;
     public int seatCount = 2;
     private int occupiedSeats = 0;
-
-    Renderer rend;
+    
+    [SerializeField] private ColorData colorData;
+    private Renderer rend;
 
     private void Awake()
     {
         rend = GetComponent<Renderer>();
     }
 
-    public void Init(BusColor color)
+    public void Init(string color, ColorData data)
     {
+        colorData = data;
         BusColor = color;
         SetColorVisual();
     }
@@ -22,7 +24,7 @@ public class Bus : MonoBehaviour
     void SetColorVisual()
     {
         if (rend == null) rend = GetComponent<Renderer>();
-        rend.material.color = (BusColor == BusColor.Red) ? Color.red : Color.blue;
+        rend.material.color = colorData.GetColor(BusColor);
     }
 
     public void OccupySeat()

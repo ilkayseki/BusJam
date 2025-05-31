@@ -5,8 +5,9 @@ public class GridNode : MonoBehaviour
     public Vector2Int Position;
     public bool IsOccupied;
     public Character Occupant;
-    public BusColor NodeColor;
-
+    public string NodeColor;
+    
+    [SerializeField] private ColorData colorData;
     Renderer rend;
 
     private void Awake()
@@ -21,15 +22,12 @@ public class GridNode : MonoBehaviour
         Debug.Log($"Grid {Position} durumu: {(occupied ? "Dolu" : "Boş")}");
     }
 
-    public void SetColor(BusColor color)
+    public void SetColor(string color, ColorData data = null)
     {
+        if (data != null) colorData = data;
         NodeColor = color;
         if (rend == null) rend = GetComponent<Renderer>();
-
-        if (NodeColor == BusColor.Red)
-            rend.material.color = Color.red;
-        else
-            rend.material.color = Color.blue;
+        rend.material.color = colorData.GetColor(NodeColor);
     }
 
     private void OnDrawGizmos()

@@ -410,6 +410,7 @@ MonoBehaviour:
   busPrefab: {fileID: 9198221246259626440, guid: 4c658698349f8904ea4cc07a9fc09018,
     type: 3}
   busCount: 3
+  colorData: {fileID: 11400000, guid: 916d3c308a4dc814b981ac496b3fb9e4, type: 2}
 --- !u!4 &571848842
 Transform:
   m_ObjectHideFlags: 0
@@ -510,6 +511,7 @@ MonoBehaviour:
     type: 3}
   characterPrefab: {fileID: 2247501272789242511, guid: 6a88cdd4a01677a47ade940445c4d7da,
     type: 3}
+  colorData: {fileID: 11400000, guid: 916d3c308a4dc814b981ac496b3fb9e4, type: 2}
 --- !u!4 &908996297
 Transform:
   m_ObjectHideFlags: 0
