@@ -19,7 +19,7 @@ public class GridNode : MonoBehaviour
     {
         IsOccupied = occupied;
         Occupant = character;
-        Debug.Log($"Grid {Position} durumu: {(occupied ? "Dolu" : "Boş")}");
+        Debug.Log($"Grid {Position} is now {(occupied ? "Occupied" : "Empty")}");
     }
 
     public void SetColor(string color, ColorData data = null)
@@ -29,16 +29,5 @@ public class GridNode : MonoBehaviour
         if (rend == null) rend = GetComponent<Renderer>();
         rend.material.color = colorData.GetColor(NodeColor);
     }
-
-    private void OnDrawGizmos()
-    {
-        if (rend == null)
-            rend = GetComponent<Renderer>();
-
-        if (rend != null)
-        {
-            Gizmos.color = IsOccupied ? Color.red : Color.green;
-            Gizmos.DrawCube(transform.position, Vector3.one * 0.9f);
-        }
-    }
+    
 }

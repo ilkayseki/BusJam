@@ -32,6 +32,12 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
 
     public void ActivateNextBus()
     {
+        // First check waiting area for matching characters
+        if (activeBus != null)
+        {
+            WaitingArea.Instance.CheckForMatchingCharacters(activeBus.BusColor);
+        }
+
         if (activeBus != null)
         {
             Destroy(activeBus.gameObject);
@@ -41,12 +47,15 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         {
             activeBus = busQueue.Dequeue();
             activeBus.gameObject.SetActive(true);
-            Debug.Log($"Yeni bus aktif oldu: {activeBus.BusColor}");
+            Debug.Log($"New bus activated: {activeBus.BusColor}");
+            
+            // Check waiting area again for new bus color
+            WaitingArea.Instance.CheckForMatchingCharacters(activeBus.BusColor);
         }
         else
         {
             activeBus = null;
-            Debug.Log("Bus kalmadı.");
+            Debug.Log("No more buses.");
         }
     }
 
@@ -57,7 +66,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
 
     public void BusFull()
     {
-        Debug.Log($"Bus {activeBus.BusColor} doldu.");
+        Debug.Log($"Bus {activeBus.BusColor} is full.");
         ActivateNextBus();
     }
 }

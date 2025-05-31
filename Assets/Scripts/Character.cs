@@ -28,6 +28,7 @@ public class Character : MonoBehaviour
     public void SetColor(string color)
     {
         CharacterColor = color;
+        if (rend == null) rend = GetComponent<Renderer>();
         rend.material.color = colorData.GetColor(color);
     }
 
@@ -62,7 +63,7 @@ public class Character : MonoBehaviour
         return false;
     }
 
-    private List<GridNode> FindPathToYZero()
+    private List<GridNode> FindPathToPosition(Vector2Int targetPosition)
     {
         Dictionary<GridNode, GridNode> cameFrom = new Dictionary<GridNode, GridNode>();
         Queue<GridNode> queue = new Queue<GridNode>();
@@ -77,7 +78,7 @@ public class Character : MonoBehaviour
         while (queue.Count > 0)
         {
             var node = queue.Dequeue();
-            if (node.Position.y == 0)
+            if (node.Position == targetPosition)
             {
                 // Reconstruct path
                 List<GridNode> path = new List<GridNode>();
@@ -120,37 +121,32 @@ public class Character : MonoBehaviour
             return;
         }
 
-        if (!CanReachYZero())
-        {
-            Debug.Log("Character cannot reach y=0.");
-            return;
-        }
-
         if (bus.BusColor == CharacterColor)
         {
-            // Immediate response
-            Debug.Log("Colors match, character will be destroyed.");
-            currentNode.SetOccupied(false, null); // Immediately free the node
-            StartMovement();
+            if (CanReachYZero())
+            {
+                Debug.Log("Colors match, moving to bus.");
+                MoveToBus();
+            }
         }
         else
         {
-            Debug.Log("Colors don't match.");
+            Debug.Log("Colors don't match, moving to waiting area.");
+            MoveToWaitingArea();
         }
     }
 
-    private void StartMovement()
+    private void MoveToBus()
     {
         isMoving = true;
+        List<GridNode> path = FindPathToPosition(new Vector2Int(currentNode.Position.x, 0));
         
-        List<GridNode> path = FindPathToYZero();
         if (path == null || path.Count == 0)
         {
-            DestroyCharacter();
+            isMoving = false;
             return;
         }
 
-        // Create and start the movement sequence immediately
         Sequence movementSequence = DOTween.Sequence();
         
         foreach (var node in path)
@@ -165,18 +161,56 @@ public class Character : MonoBehaviour
             movementSequence.Append(transform.DOMove(targetPos, 0.3f).SetEase(Ease.Linear));
         }
 
-        // On complete callback instead of coroutine
         movementSequence.OnComplete(() => {
+            currentNode.SetOccupied(false, null);
             bus.OccupySeat();
-            DestroyCharacter();
+            Destroy(gameObject);
         });
     }
 
-    private void DestroyCharacter()
+    private void MoveToWaitingArea()
     {
-        if (gameObject != null)
+        isMoving = true;
+        List<GridNode> path = FindPathToPosition(new Vector2Int(currentNode.Position.x, 0));
+        
+        if (path == null || path.Count == 0)
         {
-            Destroy(gameObject);
+            isMoving = false;
+            return;
         }
+
+        int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
+        if (slotIndex == null)
+        {
+            Debug.Log("No available slots in waiting area.");
+            isMoving = false;
+            return;
+        }
+
+        Sequence movementSequence = DOTween.Sequence();
+        
+        // Move to y=0 first
+        foreach (var node in path)
+        {
+            int flippedY = (GridManager.Instance.height - 1) - node.Position.y;
+            Vector3 targetPos = new Vector3(
+                node.Position.x * GridManager.Instance.cellSize, 
+                0.5f,
+                flippedY * GridManager.Instance.cellSize
+            );
+            
+            movementSequence.Append(transform.DOMove(targetPos, 0.3f).SetEase(Ease.Linear));
+        }
+
+        // Then move to waiting area slot
+        Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
+        movementSequence.Append(transform.DOMove(slotPosition, 0.5f));
+
+        movementSequence.OnComplete(() => {
+            currentNode.SetOccupied(false, null);
+            currentNode = null;
+            WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
+            isMoving = false;
+        });
     }
 }
