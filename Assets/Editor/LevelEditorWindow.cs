@@ -116,6 +116,12 @@ public class LevelEditorWindow : EditorWindow
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Bus Configuration", EditorStyles.boldLabel);
             
+            // Filter colors that can spawn characters
+            var spawnableColors = colorData.colors
+                .Where(c => c.spawnCharacter)
+                .Select(c => c.colorName)
+                .ToArray();
+            
             bool busesChanged = false;
             List<BusData> previousBuses = new List<BusData>(busConfigurations);
 
@@ -128,9 +134,15 @@ public class LevelEditorWindow : EditorWindow
                 int prevSeats = busConfigurations[i].seatCount;
                 int prevOrder = busConfigurations[i].order;
                 
-                busConfigurations[i].colorName = colorOptions[EditorGUILayout.Popup(
-                    Array.IndexOf(colorOptions, busConfigurations[i].colorName), 
-                    colorOptions)];
+                // Only show spawnable colors in bus configuration
+                int currentIndex = Array.IndexOf(spawnableColors, busConfigurations[i].colorName);
+                if (currentIndex < 0) currentIndex = 0;
+                
+                currentIndex = EditorGUILayout.Popup(
+                    currentIndex, 
+                    spawnableColors);
+                
+                busConfigurations[i].colorName = spawnableColors[currentIndex];
                 
                 busConfigurations[i].seatCount = EditorGUILayout.IntField("Seats", busConfigurations[i].seatCount);
                 
@@ -155,12 +167,12 @@ public class LevelEditorWindow : EditorWindow
             EditorGUILayout.EndScrollView();
 
             EditorGUILayout.BeginHorizontal();
-            selectedBusColorIndex = EditorGUILayout.Popup(selectedBusColorIndex, colorOptions);
+            selectedBusColorIndex = EditorGUILayout.Popup(selectedBusColorIndex, spawnableColors);
             newBusSeatCount = EditorGUILayout.IntField("Seats", newBusSeatCount);
             if (GUILayout.Button("Add Bus"))
             {
                 busConfigurations.Add(new BusData {
-                    colorName = colorOptions[selectedBusColorIndex],
+                    colorName = spawnableColors[selectedBusColorIndex],
                     seatCount = newBusSeatCount,
                     order = busConfigurations.Count + 1
                 });
@@ -234,7 +246,7 @@ public class LevelEditorWindow : EditorWindow
                 for (int y = 0; y < gridHeight; y++)
                 {
                     string colorName = currentLevel.nodeColors[y * gridWidth + x];
-                    Color color = string.IsNullOrEmpty(colorName) ? Color.white : colorData.GetColor(colorName);
+                    Color color = string.IsNullOrEmpty(colorName) || colorName == "X" ? Color.white : colorData.GetColor(colorName);
                     gridTextures[x, y] = CreateColorTexture(color);
                 }
             }
@@ -265,7 +277,7 @@ public class LevelEditorWindow : EditorWindow
             for (int y = 0; y < currentLevel.height; y++)
             {
                 gridTextures[x, y] = CreateColorTexture(Color.white);
-                currentLevel.nodeColors[y * currentLevel.width + x] = "";
+                currentLevel.nodeColors[y * currentLevel.width + x] = "X"; // Initialize all cells with "X"
             }
         }
     }
@@ -289,12 +301,16 @@ public class LevelEditorWindow : EditorWindow
                     if (evt.button == 0 && selectedColorIndex < colorOptions.Length)
                     {
                         string colorName = colorOptions[selectedColorIndex];
-                        currentLevel.nodeColors[y * currentLevel.width + x] = colorName;
-                        gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorName));
+                        // Only allow colors that can spawn characters
+                        if (colorData.ShouldSpawnCharacter(colorName))
+                        {
+                            currentLevel.nodeColors[y * currentLevel.width + x] = colorName;
+                            gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorName));
+                        }
                     }
                     else if (evt.button == 1)
                     {
-                        currentLevel.nodeColors[y * currentLevel.width + x] = "";
+                        currentLevel.nodeColors[y * currentLevel.width + x] = "X";
                         gridTextures[x, y] = CreateColorTexture(Color.white);
                     }
                     GUI.changed = true;
@@ -306,7 +322,13 @@ public class LevelEditorWindow : EditorWindow
                 }
 
                 string cellColor = currentLevel.nodeColors[y * currentLevel.width + x];
-                if (!string.IsNullOrEmpty(cellColor) && !colorData.ShouldSpawnCharacter(cellColor))
+                if (string.IsNullOrEmpty(cellColor) )
+                {
+                    cellColor = "X";
+                    currentLevel.nodeColors[y * currentLevel.width + x] = "X";
+                }
+
+                if (cellColor == "X" || !colorData.ShouldSpawnCharacter(cellColor))
                 {
                     GUIStyle style = new GUIStyle(EditorStyles.boldLabel);
                     style.alignment = TextAnchor.MiddleCenter;
