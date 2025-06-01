@@ -409,8 +409,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   busPrefab: {fileID: 9198221246259626440, guid: 4c658698349f8904ea4cc07a9fc09018,
     type: 3}
-  busCount: 6
-  colorData: {fileID: 11400000, guid: eeb0a08f89846cb4cbbb799fd06c61c2, type: 2}
 --- !u!4 &571848842
 Transform:
   m_ObjectHideFlags: 0
@@ -555,8 +553,6 @@ MonoBehaviour:
     type: 3}
   characterPrefab: {fileID: 2247501272789242511, guid: 6a88cdd4a01677a47ade940445c4d7da,
     type: 3}
-  colorData: {fileID: 11400000, guid: 916d3c308a4dc814b981ac496b3fb9e4, type: 2}
-  defaultLevelData: {fileID: 4900000, guid: c6490cbe5d6966e4bbb06c04398bd69c, type: 3}
   width: 0
   height: 5
 --- !u!4 &908996297
@@ -574,6 +570,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1530526150
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1530526152}
+  - component: {fileID: 1530526151}
+  m_Layer: 0
+  m_Name: LevelLoadManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1530526151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530526150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 331453264bef85a4689500082cfc287b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LEVEL_PATH: Levels/level2
+  COLOR_PATH: Color/ColorData
+--- !u!4 &1530526152
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530526150}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 960, y: 867, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -584,3 +626,4 @@ SceneRoots:
   - {fileID: 908996297}
   - {fileID: 571848842}
   - {fileID: 609726920}
+  - {fileID: 1530526152}

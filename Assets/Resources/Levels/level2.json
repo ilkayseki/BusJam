@@ -1,0 +1,27 @@
+{
+    "width": 3,
+    "height": 3,
+    "nodeColors": [
+        "Red",
+        "X",
+        "Blue",
+        "X",
+        "Red",
+        "X",
+        "Blue",
+        "X",
+        "Red"
+    ],
+    "buses": [
+        {
+            "colorName": "Blue",
+            "seatCount": 1,
+            "order": 1
+        },
+        {
+            "colorName": "Red",
+            "seatCount": 1,
+            "order": 2
+        }
+    ]
+}

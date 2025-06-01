@@ -10,44 +10,11 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
     [Header("Prefabs")]
     public GameObject gridNodePrefab;
     public GameObject characterPrefab;
-    public ColorData colorData;
-    
-    [Header("Level Data")]
-    public TextAsset defaultLevelData;
     
     private Dictionary<Vector2Int, GridNode> grid = new Dictionary<Vector2Int, GridNode>();
-    private LevelData currentLevelData;
-    [HideInInspector]public int width;
-    [HideInInspector]public int height;
-
-    private void Start()
-    {
-        if (defaultLevelData != null)
-        {
-            LoadLevelFromJson(defaultLevelData.text);
-            // Initialize buses after loading level
-            BusManager.Instance.InitializeBuses(currentLevelData.buses, colorData);
-        }
-        else
-        {
-            Debug.LogError("JSON Yükleyemedi");
-        }
-    }
-
-    public void LoadLevelFromJson(string json)
-    {
-        currentLevelData = JsonUtility.FromJson<LevelData>(json);
-        if (currentLevelData != null)
-        {
-            CreateGridFromLevelData(currentLevelData);
-        }
-        else
-        {
-            Debug.LogError("Failed to parse level data!");
-        }
-    }
-
-    private void CreateGridFromLevelData(LevelData levelData)
+    [HideInInspector] public int width;
+    [HideInInspector] public int height;
+    public void CreateGridFromLevelData(LevelData levelData, ColorData colorData)
     {
         ClearGrid();
         
@@ -58,12 +25,12 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         {
             for (int y = 0; y < height; y++)
             {
-                CreateGridNode(x, y, levelData);
+                CreateGridNode(x, y, levelData, colorData);
             }
         }
     }
 
-    private void CreateGridNode(int x, int y, LevelData levelData)
+    private void CreateGridNode(int x, int y, LevelData levelData, ColorData colorData)
     {
         int flippedY = (height - 1) - y;
         Vector2Int gridPos = new Vector2Int(x, y);
@@ -79,7 +46,7 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         if (!string.IsNullOrEmpty(colorName) && colorData.ShouldSpawnCharacter(colorName))
         {
             node.SetColor(colorName, colorData);
-            CreateCharacter(node, worldPos);
+            CreateCharacter(node, worldPos, colorData);
         }
         else
         {
@@ -88,15 +55,9 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         }
     }
 
-    private void CreateCharacter(GridNode node, Vector3 position)
+    private void CreateCharacter(GridNode node, Vector3 position, ColorData colorData)
     {
-        GameObject charObj = Instantiate(
-            characterPrefab, 
-            position + Vector3.up * 0.5f, 
-            Quaternion.identity,
-            transform
-        );
-        
+        GameObject charObj = Instantiate(characterPrefab, position + Vector3.up * 0.5f, Quaternion.identity, transform);
         Character character = charObj.GetComponent<Character>();
         character.Initialize(node, colorData);
         node.SetOccupied(true, character);
