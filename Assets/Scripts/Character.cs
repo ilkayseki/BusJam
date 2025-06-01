@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
-using System.Collections;
+using System.Linq;
 
 public class Character : MonoBehaviour
 {
@@ -12,7 +12,7 @@ public class Character : MonoBehaviour
     [SerializeField] private ColorData colorData;
     private bool isMoving = false;
     private Bus bus;
-    
+
     private void Awake()
     {
         rend = GetComponentInChildren<Renderer>();
@@ -32,235 +32,120 @@ public class Character : MonoBehaviour
         rend.material.color = colorData.GetColor(color);
     }
 
-    private bool CanReachYZero()
-    {
-        Queue<GridNode> queue = new Queue<GridNode>();
-        HashSet<GridNode> visited = new HashSet<GridNode>();
-
-        queue.Enqueue(currentNode);
-        visited.Add(currentNode);
-
-        Vector2Int[] directions = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
-        while (queue.Count > 0)
-        {
-            var node = queue.Dequeue();
-            if (node.Position.y == 0) return true;
-
-            foreach (var dir in directions)
-            {
-                var neighborPos = node.Position + dir;
-                var neighbor = GridManager.Instance.GetNode(neighborPos);
-
-                if (neighbor != null && !neighbor.IsOccupied && !visited.Contains(neighbor))
-                {
-                    queue.Enqueue(neighbor);
-                    visited.Add(neighbor);
-                }
-            }
-        }
-
-        return false;
-    }
-
-   
     private void OnMouseDown()
     {
         if (isMoving) return;
 
         bus = BusManager.Instance.GetActiveBus();
+        if (bus == null || bus.BusColor != CharacterColor) return;
 
-        if (bus == null)
+        // If already at y=0, destroy immediately
+        if (currentNode.Position.y == 0)
         {
-            Debug.Log("No active bus.");
+            DestroyCharacter();
             return;
         }
 
-        if (bus.BusColor == CharacterColor)
-        {
-            if (CanReachYZero())
-            {
-                Debug.Log("Colors match, moving to bus.");
-                MoveToBus();
-            }
-        }
-        else
-        {
-            Debug.Log("Colors don't match, moving to waiting area.");
-            MoveToWaitingArea();
-        }
+        // Find and move to nearest y=0 node
+        MoveToNearestYZero();
     }
 
-   
-    private void MoveToWaitingArea()
+    private void MoveToNearestYZero()
     {
         isMoving = true;
-        List<GridNode> path = FindPathToPosition(new Vector2Int(currentNode.Position.x, 0));
-        
+        List<GridNode> path = FindShortestPathToYZero();
+
         if (path == null || path.Count == 0)
         {
-            isMoving = false;
-            return;
-        }
-
-        int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
-        if (slotIndex == null)
-        {
-            Debug.Log("No available slots in waiting area.");
+            Debug.Log("No valid path to y=0 found");
             isMoving = false;
             return;
         }
 
         Sequence movementSequence = DOTween.Sequence();
         
-        // Move to y=0 first
         foreach (var node in path)
         {
-            int flippedY = (GridManager.Instance.height - 1) - node.Position.y;
-            Vector3 targetPos = new Vector3(
-                node.Position.x * GridManager.Instance.cellSize, 
-                0.5f,
-                flippedY * GridManager.Instance.cellSize
-            );
-            
+            Vector3 targetPos = GetWorldPosition(node.Position);
             movementSequence.Append(transform.DOMove(targetPos, 0.3f).SetEase(Ease.Linear));
         }
 
-        // Then move to waiting area slot
-        Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
-        movementSequence.Append(transform.DOMove(slotPosition, 0.5f));
-
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
-            currentNode = null;
-            WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
-            isMoving = false;
+            bus.OccupySeat();
+            DestroyCharacter();
         });
     }
-    
-    private void MoveToBus()
+
+    private List<GridNode> FindShortestPathToYZero()
     {
-        isMoving = true;
-    
-        // Y=0 hattındaki tüm boş node'ları bul
-        List<GridNode> availableTargets = new List<GridNode>();
-        for (int x = 0; x < GridManager.Instance.width; x++)
-        {
-            Vector2Int targetPos = new Vector2Int(x, 0);
-            GridNode node = GridManager.Instance.GetNode(targetPos);
-            if (node != null && !node.IsOccupied)
-            {
-                availableTargets.Add(node);
-            }
-        }
+        // If already at y=0, return empty path
+        if (currentNode.Position.y == 0) return new List<GridNode>();
 
-        if (availableTargets.Count == 0)
-        {
-            Debug.LogError("No available nodes at y=0 line!");
-            isMoving = false;
-            return;
-        }
+        Queue<List<GridNode>> pathsQueue = new Queue<List<GridNode>>();
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
 
-        // Tüm olası hedefler için yol bulmaya çalış
-        foreach (GridNode targetNode in availableTargets)
+        // Start with current node
+        pathsQueue.Enqueue(new List<GridNode> { currentNode });
+        visited.Add(currentNode.Position);
+
+        Vector2Int[] directions = { 
+            Vector2Int.up, 
+            Vector2Int.down, 
+            Vector2Int.left, 
+            Vector2Int.right 
+        };
+
+        while (pathsQueue.Count > 0)
         {
-            List<GridNode> path = FindPathToPosition(targetNode.Position);
-        
-            if (path != null && path.Count > 0)
+            List<GridNode> currentPath = pathsQueue.Dequeue();
+            GridNode lastNode = currentPath.Last();
+
+            // Check all neighbors
+            foreach (var dir in directions)
             {
-                // Yol bulundu, hareketi başlat
-                Sequence movementSequence = DOTween.Sequence();
-            
-                foreach (var node in path)
-                {
-                    int flippedY = (GridManager.Instance.height - 1) - node.Position.y;
-                    Vector3 targetPos = new Vector3(
-                        node.Position.x * GridManager.Instance.cellSize, 
-                        0.5f,
-                        flippedY * GridManager.Instance.cellSize
-                    );
+                Vector2Int neighborPos = lastNode.Position + dir;
                 
-                    movementSequence.Append(transform.DOMove(targetPos, 0.3f).SetEase(Ease.Linear));
+                // Skip if already visited
+                if (visited.Contains(neighborPos)) continue;
+
+                GridNode neighbor = GridManager.Instance.GetNode(neighborPos);
+                if (neighbor == null || neighbor.IsOccupied) continue;
+
+                // Create new path with this neighbor
+                List<GridNode> newPath = new List<GridNode>(currentPath) { neighbor };
+                
+                // If reached y=0, return the path
+                if (neighborPos.y == 0)
+                {
+                    // Remove starting node (we're already there)
+                    newPath.RemoveAt(0);
+                    return newPath;
                 }
 
-                movementSequence.OnComplete(() => {
-                    currentNode.SetOccupied(false, null);
-                    bus.OccupySeat();
-                    Destroy(gameObject);
-                });
-            
-                return; // İlk bulunan geçerli yolda hareketi başlat ve çık
+                // Enqueue the new path
+                pathsQueue.Enqueue(newPath);
+                visited.Add(neighborPos);
             }
         }
 
-        Debug.LogError("No valid path to any y=0 node!");
-        isMoving = false;
+        return null; // No path found
     }
 
-private List<GridNode> FindPathToPosition(Vector2Int targetPosition)
-{
-    Dictionary<GridNode, GridNode> cameFrom = new Dictionary<GridNode, GridNode>();
-    Queue<GridNode> queue = new Queue<GridNode>();
-    HashSet<GridNode> visited = new HashSet<GridNode>();
-
-    queue.Enqueue(currentNode);
-    visited.Add(currentNode);
-    cameFrom[currentNode] = null;
-
-    Vector2Int[] directions = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
-    while (queue.Count > 0)
+    private Vector3 GetWorldPosition(Vector2Int gridPos)
     {
-        var node = queue.Dequeue();
-        
-        // HEDEF KONTROLÜ DOĞRU YAPILDIĞINDAN EMİN OL
-        if (node.Position == targetPosition)
-        {
-            List<GridNode> path = new List<GridNode>();
-            GridNode current = node;
-            
-            while (current != null)
-            {
-                path.Add(current);
-                current = cameFrom[current];
-            }
-            
-            path.Reverse();
-            return path;
-        }
-
-        foreach (var dir in directions)
-        {
-            var neighborPos = node.Position + dir;
-            var neighbor = GridManager.Instance.GetNode(neighborPos);
-
-            if (neighbor != null && !neighbor.IsOccupied && !visited.Contains(neighbor))
-            {
-                queue.Enqueue(neighbor);
-                visited.Add(neighbor);
-                cameFrom[neighbor] = node; // KOMŞUYU MEVCUT NODE'A BAĞLA
-            }
-        }
+        int flippedY = (GridManager.Instance.height - 1) - gridPos.y;
+        return new Vector3(
+            gridPos.x * GridManager.Instance.cellSize, 
+            0.5f,
+            flippedY * GridManager.Instance.cellSize
+        );
     }
 
-    return null;
-}
-
-private void DebugNeighbors(GridNode node)
-{
-    Vector2Int[] directions = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-    
-    foreach (var dir in directions)
+    private void DestroyCharacter()
     {
-        var neighborPos = node.Position + dir;
-        var neighbor = GridManager.Instance.GetNode(neighborPos);
-        
-        if (neighbor != null)
-        {
-            Debug.Log($"Neighbor at {neighborPos}: " +
-                     $"Occupied={neighbor.IsOccupied}, " +
-                     $"Color={neighbor.NodeColor}");
-        }
+        currentNode.SetOccupied(false, null);
+        bus.OccupySeat();
+        Destroy(gameObject);
     }
-}
 }
