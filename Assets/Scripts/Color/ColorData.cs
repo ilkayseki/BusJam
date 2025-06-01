@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "ColorData", menuName = "Game/Color Data")]
@@ -8,12 +9,15 @@ public class ColorData : ScriptableObject
     {
         public string colorName;
         public Color colorValue;
+        public bool spawnCharacter = true;
     }
 
     public ColorInfo[] colors;
 
     public Color GetColor(string name)
     {
+        if (colors == null) return Color.white;
+        
         foreach (var colorInfo in colors)
         {
             if (colorInfo.colorName == name)
@@ -21,13 +25,27 @@ public class ColorData : ScriptableObject
                 return colorInfo.colorValue;
             }
         }
-        Debug.LogWarning($"Color {name} not found, returning white");
         return Color.white;
     }
 
-    public string GetRandomColorName()
+    public bool ShouldSpawnCharacter(string colorName)
     {
-        if (colors.Length == 0) return "";
-        return colors[Random.Range(0, colors.Length)].colorName;
+        if (string.IsNullOrEmpty(colorName)) return false;
+        if (colors == null) return false;
+        
+        foreach (var colorInfo in colors)
+        {
+            if (colorInfo.colorName == colorName)
+            {
+                return colorInfo.spawnCharacter;
+            }
+        }
+        return false;
+    }
+
+    public string[] GetColorNames()
+    {
+        if (colors == null) return new string[0];
+        return colors.Select(c => c.colorName).ToArray();
     }
 }

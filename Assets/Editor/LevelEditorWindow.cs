@@ -2,7 +2,6 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 
 public class LevelEditorWindow : EditorWindow
 {
@@ -34,13 +33,14 @@ public class LevelEditorWindow : EditorWindow
     private void LoadColorData()
     {
         colorData = Resources.Load<ColorData>("Color/ColorData");
-        if (colorData != null && colorData.colors != null)
+        if (colorData != null)
         {
-            colorOptions = colorData.colors.Select(c => c.colorName).ToArray();
+            colorOptions = colorData.GetColorNames();
         }
         else
         {
             Debug.LogError("ColorData not found at path: Resources/Color/ColorData");
+            colorOptions = new string[0];
         }
     }
 
@@ -55,91 +55,151 @@ public class LevelEditorWindow : EditorWindow
         EditorGUILayout.BeginVertical();
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        try
+        if (colorData == null || colorOptions.Length == 0)
         {
-            if (colorData == null || colorOptions == null || colorOptions.Length == 0)
+            EditorGUILayout.HelpBox("ColorData not loaded properly", MessageType.Error);
+            if (GUILayout.Button("Reload ColorData"))
             {
-                EditorGUILayout.HelpBox("ColorData not loaded properly at path: Resources/Color/ColorData", MessageType.Error);
-                if (GUILayout.Button("Reload ColorData"))
-                {
-                    LoadColorData();
-                }
-                return;
+                LoadColorData();
             }
+            return;
+        }
 
-            // Level Selection Section
-            EditorGUILayout.Space();
-            showLevelSelection = EditorGUILayout.Foldout(showLevelSelection, "Level Selection", true);
-            if (showLevelSelection)
+        DrawLevelSelectionSection();
+        DrawGridSettingsSection();
+        DrawColorSelectionSection();
+        DrawGridOperationsSection();
+        DrawGridDisplaySection();
+
+        EditorGUILayout.EndScrollView();
+        EditorGUILayout.EndVertical();
+    }
+
+    private void DrawLevelSelectionSection()
+    {
+        EditorGUILayout.Space();
+        showLevelSelection = EditorGUILayout.Foldout(showLevelSelection, "Level Selection", true);
+        if (!showLevelSelection) return;
+
+        EditorGUILayout.BeginVertical("box");
+        
+        if (availableLevels.Length > 0)
+        {
+            selectedLevelIndex = EditorGUILayout.Popup("Available Levels", selectedLevelIndex, availableLevels);
+            if (GUILayout.Button("Load Selected Level"))
             {
-                EditorGUILayout.BeginVertical("box");
-                
-                if (availableLevels != null && availableLevels.Length > 0)
-                {
-                    selectedLevelIndex = EditorGUILayout.Popup("Available Levels", selectedLevelIndex, availableLevels);
-                    if (GUILayout.Button("Load Selected Level"))
-                    {
-                        LoadSelectedLevel();
-                    }
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("No levels found in Resources/Levels folder", MessageType.Info);
-                }
-
-                if (GUILayout.Button("Refresh Level List"))
-                {
-                    RefreshLevelList();
-                }
-
-                EditorGUILayout.EndVertical();
-            }
-
-            // Grid Settings Section
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Grid Settings", EditorStyles.boldLabel);
-            gridWidth = EditorGUILayout.IntField("Width", gridWidth);
-            gridHeight = EditorGUILayout.IntField("Height", gridHeight);
-            
-            // Color Selection
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
-            selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
-
-            // Grid Operations
-            EditorGUILayout.Space();
-            if (GUILayout.Button("Create New Grid"))
-            {
-                CreateNewGrid();
-            }
-
-            // Grid Display
-            if (currentLevel != null && gridTextures != null)
-            {
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Grid Painting", EditorStyles.boldLabel);
-                EditorGUILayout.HelpBox("Left-click to paint, Right-click to clear", MessageType.Info);
-                DrawGridEditor();
-
-                // Save Buttons
-                EditorGUILayout.Space();
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("Save Level", GUILayout.Height(30)))
-                {
-                    SaveLevel();
-                }
-                if (GUILayout.Button("Save As New", GUILayout.Height(30)))
-                {
-                    SaveLevelAsNew();
-                }
-                EditorGUILayout.EndHorizontal();
+                LoadSelectedLevel();
             }
         }
-        finally
+        else
         {
-            EditorGUILayout.EndScrollView();
-            EditorGUILayout.EndVertical();
+            EditorGUILayout.HelpBox("No levels found in Resources/Levels", MessageType.Info);
         }
+
+        if (GUILayout.Button("Refresh Level List"))
+        {
+            RefreshLevelList();
+        }
+
+        EditorGUILayout.EndVertical();
+    }
+
+    private void DrawGridSettingsSection()
+    {
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Grid Settings", EditorStyles.boldLabel);
+        gridWidth = EditorGUILayout.IntField("Width", gridWidth);
+        gridHeight = EditorGUILayout.IntField("Height", gridHeight);
+    }
+
+    private void DrawColorSelectionSection()
+    {
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
+        selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
+    }
+
+    private void DrawGridOperationsSection()
+    {
+        EditorGUILayout.Space();
+        if (GUILayout.Button("Create New Grid"))
+        {
+            CreateNewGrid();
+        }
+    }
+
+    private void DrawGridDisplaySection()
+    {
+        if (currentLevel == null || gridTextures == null) return;
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Grid Painting", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("Left-click to paint, Right-click to clear", MessageType.Info);
+
+        for (int y = 0; y < currentLevel.height; y++)
+        {
+            EditorGUILayout.BeginHorizontal();
+            for (int x = 0; x < currentLevel.width; x++)
+            {
+                DrawGridCell(x, y);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
+        DrawSaveButtons();
+    }
+
+    private void DrawGridCell(int x, int y)
+    {
+        Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(50), GUILayout.Height(50));
+        
+        if (gridTextures[x, y] != null)
+        {
+            EditorGUI.DrawPreviewTexture(rect, gridTextures[x, y]);
+        }
+
+        string colorName = currentLevel.nodeColors[y * currentLevel.width + x];
+        if (!string.IsNullOrEmpty(colorName) && !colorData.ShouldSpawnCharacter(colorName))
+        {
+            GUIStyle style = new GUIStyle(EditorStyles.boldLabel);
+            style.alignment = TextAnchor.MiddleCenter;
+            EditorGUI.LabelField(rect, "X", style);
+        }
+
+        HandleCellClick(rect, x, y);
+    }
+
+    private void HandleCellClick(Rect rect, int x, int y)
+    {
+        Event evt = Event.current;
+        if (evt.type != EventType.MouseDown || !rect.Contains(evt.mousePosition)) return;
+
+        if (evt.button == 0 && selectedColorIndex < colorOptions.Length)
+        {
+            currentLevel.nodeColors[y * currentLevel.width + x] = colorOptions[selectedColorIndex];
+            gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorOptions[selectedColorIndex]));
+        }
+        else if (evt.button == 1)
+        {
+            currentLevel.nodeColors[y * currentLevel.width + x] = "";
+            gridTextures[x, y] = CreateColorTexture(Color.white);
+        }
+        GUI.changed = true;
+    }
+
+    private void DrawSaveButtons()
+    {
+        EditorGUILayout.Space();
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("Save Level", GUILayout.Height(30)))
+        {
+            SaveLevel();
+        }
+        if (GUILayout.Button("Save As New", GUILayout.Height(30)))
+        {
+            SaveLevelAsNew();
+        }
+        EditorGUILayout.EndHorizontal();
     }
 
     private void LoadSelectedLevel()
@@ -160,8 +220,6 @@ public class LevelEditorWindow : EditorWindow
             gridHeight = currentLevel.height;
             
             gridTextures = new Texture2D[gridWidth, gridHeight];
-            
-            // Load colors directly without flipping (storage matches display)
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
@@ -171,13 +229,10 @@ public class LevelEditorWindow : EditorWindow
                     gridTextures[x, y] = CreateColorTexture(color);
                 }
             }
-            
-            Debug.Log($"Level loaded successfully: {levelFile.name}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Failed to load level: {e.Message}");
-            EditorUtility.DisplayDialog("Error", $"Failed to load level:\n{e.Message}", "OK");
+            Debug.LogError($"Level load failed: {e.Message}");
         }
     }
 
@@ -190,63 +245,35 @@ public class LevelEditorWindow : EditorWindow
             nodeColors = new string[gridWidth * gridHeight]
         };
 
-        gridTextures = new Texture2D[currentLevel.width, currentLevel.height];
-        for (int x = 0; x < currentLevel.width; x++)
+        gridTextures = new Texture2D[gridWidth, gridHeight];
+        for (int x = 0; x < gridWidth; x++)
         {
-            for (int y = 0; y < currentLevel.height; y++)
+            for (int y = 0; y < gridHeight; y++)
             {
                 gridTextures[x, y] = CreateColorTexture(Color.white);
-                currentLevel.nodeColors[y * currentLevel.width + x] = "";
+                currentLevel.nodeColors[y * gridWidth + x] = "";
             }
         }
     }
 
-    private void DrawGridEditor()
+    private Texture2D CreateColorTexture(Color color)
     {
-        if (currentLevel == null || gridTextures == null) return;
-
-        // Draw grid with y=0 at the top (natural order)
-        for (int y = 0; y < currentLevel.height; y++)
+        Texture2D texture = new Texture2D(16, 16);
+        Color[] pixels = new Color[16 * 16];
+        for (int i = 0; i < pixels.Length; i++)
         {
-            EditorGUILayout.BeginHorizontal();
-            for (int x = 0; x < currentLevel.width; x++)
-            {
-                if (x >= gridTextures.GetLength(0) || y >= gridTextures.GetLength(1)) continue;
-
-                Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(50), GUILayout.Height(50));
-                
-                Event evt = Event.current;
-                if (evt.type == EventType.MouseDown && rect.Contains(evt.mousePosition))
-                {
-                    if (evt.button == 0 && selectedColorIndex < colorOptions.Length)
-                    {
-                        string colorName = colorOptions[selectedColorIndex];
-                        currentLevel.nodeColors[y * currentLevel.width + x] = colorName;
-                        gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorName));
-                    }
-                    else if (evt.button == 1)
-                    {
-                        currentLevel.nodeColors[y * currentLevel.width + x] = "";
-                        gridTextures[x, y] = CreateColorTexture(Color.white);
-                    }
-                    GUI.changed = true;
-                }
-
-                if (gridTextures[x, y] != null)
-                {
-                    EditorGUI.DrawPreviewTexture(rect, gridTextures[x, y]);
-                }
-            }
-            EditorGUILayout.EndHorizontal();
+            pixels[i] = color;
         }
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
     }
 
     private void SaveLevel()
     {
         if (selectedLevelIndex >= 0 && selectedLevelIndex < availableLevels.Length)
         {
-            string levelName = availableLevels[selectedLevelIndex];
-            string path = Path.Combine(Application.dataPath, "Resources", "Levels", levelName + ".json");
+            string path = Path.Combine(Application.dataPath, "Resources", "Levels", availableLevels[selectedLevelIndex] + ".json");
             SaveLevelToPath(path);
         }
         else
@@ -258,7 +285,7 @@ public class LevelEditorWindow : EditorWindow
     private void SaveLevelAsNew()
     {
         string path = EditorUtility.SaveFilePanel(
-            "Save Level As JSON",
+            "Save Level",
             Path.Combine(Application.dataPath, "Resources", "Levels"),
             "NewLevel.json",
             "json");
@@ -274,25 +301,13 @@ public class LevelEditorWindow : EditorWindow
     {
         try
         {
-            // Save in display order (no coordinate flipping needed)
             string json = JsonUtility.ToJson(currentLevel, true);
             File.WriteAllText(path, json);
             AssetDatabase.Refresh();
-            Debug.Log($"Level saved successfully to: {path}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Failed to save level: {e.Message}");
-            EditorUtility.DisplayDialog("Error", $"Failed to save level:\n{e.Message}", "OK");
+            Debug.LogError($"Level save failed: {e.Message}");
         }
-    }
-
-    private Texture2D CreateColorTexture(Color color)
-    {
-        Texture2D texture = new Texture2D(16, 16);
-        Color[] pixels = Enumerable.Repeat(color, 16 * 16).ToArray();
-        texture.SetPixels(pixels);
-        texture.Apply();
-        return texture;
     }
 }

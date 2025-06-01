@@ -5,8 +5,6 @@ using System.IO;
 public class GridManager : MonoBehaviourSingleton<GridManager>
 {
     [Header("Grid Settings")]
-    public int defaultWidth = 5;
-    public int defaultHeight = 5;
     public float cellSize = 2f;
     
     [Header("Prefabs")]
@@ -76,14 +74,14 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
 
         string colorName = levelData.nodeColors[y * width + x];
     
-        if (!string.IsNullOrEmpty(colorName) && colorName != "White")
+        if (!string.IsNullOrEmpty(colorName) && colorData.ShouldSpawnCharacter(colorName))
         {
             node.SetColor(colorName, colorData);
             CreateCharacter(node, worldPos);
         }
         else
         {
-            node.SetColor("White", colorData); // Empty color
+            node.SetColor(colorName, colorData); 
             node.SetOccupied(false, null);
         }
     }
@@ -98,7 +96,7 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         );
         
         Character character = charObj.GetComponent<Character>();
-        character.Init(node, colorData);
+        character.Initialize(node, colorData);
         node.SetOccupied(true, character);
     }
 

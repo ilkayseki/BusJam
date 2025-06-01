@@ -23,7 +23,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
             GameObject busObj = Instantiate(busPrefab, transform.position, Quaternion.identity);
             busObj.transform.parent = this.transform;
             Bus bus = busObj.GetComponent<Bus>();
-            string color = colorData.GetRandomColorName();
+            string color = colorData.colors[1].colorName; //değiştir
             bus.Init(color, colorData);
             bus.gameObject.SetActive(false);
             busQueue.Enqueue(bus);
