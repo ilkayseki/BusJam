@@ -14,10 +14,9 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         
         // Order buses by their order value
         var orderedBuses = busData.OrderBy(b => b.order).ToArray();
-        
         for (int i = 0; i < orderedBuses.Length; i++)
         {
-            GameObject busObj = Instantiate(busPrefab, transform.position, Quaternion.identity);
+            GameObject busObj = Instantiate(busPrefab, new Vector3(transform.position.x-orderedBuses[i].order,transform.position.y,transform.position.z), Quaternion.identity);
             busObj.transform.parent = transform;
             Bus bus = busObj.GetComponent<Bus>();
             

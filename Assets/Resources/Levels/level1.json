@@ -6,27 +6,27 @@
         "Red",
         "Red",
         "Red",
-        "White",
+        "",
         "Blue",
         "Blue",
         "Blue",
         "Blue",
-        "White",
-        "White",
-        "White",
-        "Blue",
-        "White",
-        "White",
-        "White",
-        "White",
-        "Blue",
-        "White",
-        "White",
-        "Blue",
-        "White",
+        "",
+        "",
+        "",
         "Red",
-        "White",
-        "Red"
+        "",
+        "",
+        "",
+        "",
+        "Red",
+        "",
+        "",
+        "",
+        "Blue",
+        "",
+        "Blue",
+        ""
     ],
     "buses": [
         {
@@ -36,13 +36,18 @@
         },
         {
             "colorName": "Blue",
-            "seatCount": 2,
+            "seatCount": 1,
             "order": 2
+        },
+        {
+            "colorName": "Red",
+            "seatCount": 1,
+            "order": 3
         },
         {
             "colorName": "Blue",
             "seatCount": 2,
-            "order": 3
+            "order": 4
         }
     ]
 }

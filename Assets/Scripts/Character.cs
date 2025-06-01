@@ -65,7 +65,6 @@ public class Character : MonoBehaviour
 
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
-            bus.OccupySeat();
             DestroyCharacter();
         });
     }
