@@ -1,7 +1,9 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 
 public class LevelEditorWindow : EditorWindow
 {
@@ -17,6 +19,11 @@ public class LevelEditorWindow : EditorWindow
     private string[] availableLevels;
     private int selectedLevelIndex = 0;
     private bool showLevelSelection = true;
+    
+    private List<BusData> busConfigurations = new List<BusData>();
+    private Vector2 busScrollPosition;
+    private int newBusSeatCount = 2;
+    private int selectedBusColorIndex = 0;
 
     [MenuItem("Window/Level Editor")]
     public static void ShowWindow()
@@ -33,14 +40,13 @@ public class LevelEditorWindow : EditorWindow
     private void LoadColorData()
     {
         colorData = Resources.Load<ColorData>("Color/ColorData");
-        if (colorData != null)
+        if (colorData != null && colorData.colors != null)
         {
-            colorOptions = colorData.GetColorNames();
+            colorOptions = colorData.colors.Select(c => c.colorName).ToArray();
         }
         else
         {
             Debug.LogError("ColorData not found at path: Resources/Color/ColorData");
-            colorOptions = new string[0];
         }
     }
 
@@ -55,151 +61,153 @@ public class LevelEditorWindow : EditorWindow
         EditorGUILayout.BeginVertical();
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        if (colorData == null || colorOptions.Length == 0)
+        try
         {
-            EditorGUILayout.HelpBox("ColorData not loaded properly", MessageType.Error);
-            if (GUILayout.Button("Reload ColorData"))
+            if (colorData == null || colorOptions == null || colorOptions.Length == 0)
             {
-                LoadColorData();
+                EditorGUILayout.HelpBox("ColorData not loaded properly at path: Resources/Color/ColorData", MessageType.Error);
+                if (GUILayout.Button("Reload ColorData"))
+                {
+                    LoadColorData();
+                }
+                return;
             }
-            return;
-        }
 
-        DrawLevelSelectionSection();
-        DrawGridSettingsSection();
-        DrawColorSelectionSection();
-        DrawGridOperationsSection();
-        DrawGridDisplaySection();
-
-        EditorGUILayout.EndScrollView();
-        EditorGUILayout.EndVertical();
-    }
-
-    private void DrawLevelSelectionSection()
-    {
-        EditorGUILayout.Space();
-        showLevelSelection = EditorGUILayout.Foldout(showLevelSelection, "Level Selection", true);
-        if (!showLevelSelection) return;
-
-        EditorGUILayout.BeginVertical("box");
-        
-        if (availableLevels.Length > 0)
-        {
-            selectedLevelIndex = EditorGUILayout.Popup("Available Levels", selectedLevelIndex, availableLevels);
-            if (GUILayout.Button("Load Selected Level"))
+            // Level Selection Section
+            EditorGUILayout.Space();
+            showLevelSelection = EditorGUILayout.Foldout(showLevelSelection, "Level Selection", true);
+            if (showLevelSelection)
             {
-                LoadSelectedLevel();
+                EditorGUILayout.BeginVertical("box");
+                
+                if (availableLevels != null && availableLevels.Length > 0)
+                {
+                    selectedLevelIndex = EditorGUILayout.Popup("Available Levels", selectedLevelIndex, availableLevels);
+                    if (GUILayout.Button("Load Selected Level"))
+                    {
+                        LoadSelectedLevel();
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("No levels found in Resources/Levels folder", MessageType.Info);
+                }
+
+                if (GUILayout.Button("Refresh Level List"))
+                {
+                    RefreshLevelList();
+                }
+
+                EditorGUILayout.EndVertical();
             }
-        }
-        else
-        {
-            EditorGUILayout.HelpBox("No levels found in Resources/Levels", MessageType.Info);
-        }
 
-        if (GUILayout.Button("Refresh Level List"))
-        {
-            RefreshLevelList();
-        }
+            // Grid Settings Section
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Grid Settings", EditorStyles.boldLabel);
+            gridWidth = EditorGUILayout.IntField("Width", gridWidth);
+            gridHeight = EditorGUILayout.IntField("Height", gridHeight);
+            
+            // Color Selection
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
+            selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
 
-        EditorGUILayout.EndVertical();
-    }
+            // Bus Configuration Section
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Bus Configuration", EditorStyles.boldLabel);
+            
+            bool busesChanged = false;
+            List<BusData> previousBuses = new List<BusData>(busConfigurations);
 
-    private void DrawGridSettingsSection()
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Grid Settings", EditorStyles.boldLabel);
-        gridWidth = EditorGUILayout.IntField("Width", gridWidth);
-        gridHeight = EditorGUILayout.IntField("Height", gridHeight);
-    }
+            busScrollPosition = EditorGUILayout.BeginScrollView(busScrollPosition, GUILayout.Height(150));
+            for (int i = 0; i < busConfigurations.Count; i++)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                string prevColor = busConfigurations[i].colorName;
+                int prevSeats = busConfigurations[i].seatCount;
+                int prevOrder = busConfigurations[i].order;
+                
+                busConfigurations[i].colorName = colorOptions[EditorGUILayout.Popup(
+                    Array.IndexOf(colorOptions, busConfigurations[i].colorName), 
+                    colorOptions)];
+                
+                busConfigurations[i].seatCount = EditorGUILayout.IntField("Seats", busConfigurations[i].seatCount);
+                
+                busConfigurations[i].order = EditorGUILayout.IntField("Order", busConfigurations[i].order);
+                
+                if (prevColor != busConfigurations[i].colorName || 
+                    prevSeats != busConfigurations[i].seatCount || 
+                    prevOrder != busConfigurations[i].order)
+                {
+                    busesChanged = true;
+                }
+                
+                if (GUILayout.Button("Remove", GUILayout.Width(80)))
+                {
+                    busConfigurations.RemoveAt(i);
+                    busesChanged = true;
+                    i--;
+                }
+                
+                EditorGUILayout.EndHorizontal();
+            }
+            EditorGUILayout.EndScrollView();
 
-    private void DrawColorSelectionSection()
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
-        selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
-    }
-
-    private void DrawGridOperationsSection()
-    {
-        EditorGUILayout.Space();
-        if (GUILayout.Button("Create New Grid"))
-        {
-            CreateNewGrid();
-        }
-    }
-
-    private void DrawGridDisplaySection()
-    {
-        if (currentLevel == null || gridTextures == null) return;
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Grid Painting", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("Left-click to paint, Right-click to clear", MessageType.Info);
-
-        for (int y = 0; y < currentLevel.height; y++)
-        {
             EditorGUILayout.BeginHorizontal();
-            for (int x = 0; x < currentLevel.width; x++)
+            selectedBusColorIndex = EditorGUILayout.Popup(selectedBusColorIndex, colorOptions);
+            newBusSeatCount = EditorGUILayout.IntField("Seats", newBusSeatCount);
+            if (GUILayout.Button("Add Bus"))
             {
-                DrawGridCell(x, y);
+                busConfigurations.Add(new BusData {
+                    colorName = colorOptions[selectedBusColorIndex],
+                    seatCount = newBusSeatCount,
+                    order = busConfigurations.Count + 1
+                });
+                busesChanged = true;
             }
             EditorGUILayout.EndHorizontal();
+
+            if (busesChanged && currentLevel != null)
+            {
+                currentLevel.buses = busConfigurations.ToArray();
+                EditorUtility.SetDirty(this);
+            }
+
+            // Grid Operations
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Create New Grid"))
+            {
+                CreateNewGrid();
+            }
+
+            // Grid Display
+            if (currentLevel != null && gridTextures != null)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Grid Painting", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("Left-click to paint, Right-click to clear", MessageType.Info);
+                DrawGridEditor();
+
+                // Save Buttons
+                EditorGUILayout.Space();
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Save Level", GUILayout.Height(30)))
+                {
+                    SaveLevel();
+                }
+                if (GUILayout.Button("Save As New", GUILayout.Height(30)))
+                {
+                    SaveLevelAsNew();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
         }
-
-        DrawSaveButtons();
-    }
-
-    private void DrawGridCell(int x, int y)
-    {
-        Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(50), GUILayout.Height(50));
-        
-        if (gridTextures[x, y] != null)
+        finally
         {
-            EditorGUI.DrawPreviewTexture(rect, gridTextures[x, y]);
+            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
         }
-
-        string colorName = currentLevel.nodeColors[y * currentLevel.width + x];
-        if (!string.IsNullOrEmpty(colorName) && !colorData.ShouldSpawnCharacter(colorName))
-        {
-            GUIStyle style = new GUIStyle(EditorStyles.boldLabel);
-            style.alignment = TextAnchor.MiddleCenter;
-            EditorGUI.LabelField(rect, "X", style);
-        }
-
-        HandleCellClick(rect, x, y);
-    }
-
-    private void HandleCellClick(Rect rect, int x, int y)
-    {
-        Event evt = Event.current;
-        if (evt.type != EventType.MouseDown || !rect.Contains(evt.mousePosition)) return;
-
-        if (evt.button == 0 && selectedColorIndex < colorOptions.Length)
-        {
-            currentLevel.nodeColors[y * currentLevel.width + x] = colorOptions[selectedColorIndex];
-            gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorOptions[selectedColorIndex]));
-        }
-        else if (evt.button == 1)
-        {
-            currentLevel.nodeColors[y * currentLevel.width + x] = "";
-            gridTextures[x, y] = CreateColorTexture(Color.white);
-        }
-        GUI.changed = true;
-    }
-
-    private void DrawSaveButtons()
-    {
-        EditorGUILayout.Space();
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("Save Level", GUILayout.Height(30)))
-        {
-            SaveLevel();
-        }
-        if (GUILayout.Button("Save As New", GUILayout.Height(30)))
-        {
-            SaveLevelAsNew();
-        }
-        EditorGUILayout.EndHorizontal();
     }
 
     private void LoadSelectedLevel()
@@ -220,6 +228,7 @@ public class LevelEditorWindow : EditorWindow
             gridHeight = currentLevel.height;
             
             gridTextures = new Texture2D[gridWidth, gridHeight];
+            
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
@@ -229,51 +238,91 @@ public class LevelEditorWindow : EditorWindow
                     gridTextures[x, y] = CreateColorTexture(color);
                 }
             }
+            
+            busConfigurations = new List<BusData>(currentLevel.buses ?? new BusData[0]);
+            
+            Debug.Log($"Level loaded successfully: {levelFile.name}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Level load failed: {e.Message}");
+            Debug.LogError($"Failed to load level: {e.Message}");
+            EditorUtility.DisplayDialog("Error", $"Failed to load level:\n{e.Message}", "OK");
         }
     }
 
     private void CreateNewGrid()
     {
-        currentLevel = new LevelData
-        {
+        currentLevel = new LevelData {
             width = Mathf.Clamp(gridWidth, 1, 20),
             height = Mathf.Clamp(gridHeight, 1, 20),
-            nodeColors = new string[gridWidth * gridHeight]
+            nodeColors = new string[gridWidth * gridHeight],
+            buses = busConfigurations.ToArray()
         };
 
-        gridTextures = new Texture2D[gridWidth, gridHeight];
-        for (int x = 0; x < gridWidth; x++)
+        gridTextures = new Texture2D[currentLevel.width, currentLevel.height];
+        for (int x = 0; x < currentLevel.width; x++)
         {
-            for (int y = 0; y < gridHeight; y++)
+            for (int y = 0; y < currentLevel.height; y++)
             {
                 gridTextures[x, y] = CreateColorTexture(Color.white);
-                currentLevel.nodeColors[y * gridWidth + x] = "";
+                currentLevel.nodeColors[y * currentLevel.width + x] = "";
             }
         }
     }
 
-    private Texture2D CreateColorTexture(Color color)
+    private void DrawGridEditor()
     {
-        Texture2D texture = new Texture2D(16, 16);
-        Color[] pixels = new Color[16 * 16];
-        for (int i = 0; i < pixels.Length; i++)
+        if (currentLevel == null || gridTextures == null) return;
+
+        for (int y = 0; y < currentLevel.height; y++)
         {
-            pixels[i] = color;
+            EditorGUILayout.BeginHorizontal();
+            for (int x = 0; x < currentLevel.width; x++)
+            {
+                if (x >= gridTextures.GetLength(0) || y >= gridTextures.GetLength(1)) continue;
+
+                Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(50), GUILayout.Height(50));
+                
+                Event evt = Event.current;
+                if (evt.type == EventType.MouseDown && rect.Contains(evt.mousePosition))
+                {
+                    if (evt.button == 0 && selectedColorIndex < colorOptions.Length)
+                    {
+                        string colorName = colorOptions[selectedColorIndex];
+                        currentLevel.nodeColors[y * currentLevel.width + x] = colorName;
+                        gridTextures[x, y] = CreateColorTexture(colorData.GetColor(colorName));
+                    }
+                    else if (evt.button == 1)
+                    {
+                        currentLevel.nodeColors[y * currentLevel.width + x] = "";
+                        gridTextures[x, y] = CreateColorTexture(Color.white);
+                    }
+                    GUI.changed = true;
+                }
+
+                if (gridTextures[x, y] != null)
+                {
+                    EditorGUI.DrawPreviewTexture(rect, gridTextures[x, y]);
+                }
+
+                string cellColor = currentLevel.nodeColors[y * currentLevel.width + x];
+                if (!string.IsNullOrEmpty(cellColor) && !colorData.ShouldSpawnCharacter(cellColor))
+                {
+                    GUIStyle style = new GUIStyle(EditorStyles.boldLabel);
+                    style.alignment = TextAnchor.MiddleCenter;
+                    EditorGUI.LabelField(rect, "X", style);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
         }
-        texture.SetPixels(pixels);
-        texture.Apply();
-        return texture;
     }
 
     private void SaveLevel()
     {
         if (selectedLevelIndex >= 0 && selectedLevelIndex < availableLevels.Length)
         {
-            string path = Path.Combine(Application.dataPath, "Resources", "Levels", availableLevels[selectedLevelIndex] + ".json");
+            string levelName = availableLevels[selectedLevelIndex];
+            string path = Path.Combine(Application.dataPath, "Resources", "Levels", levelName + ".json");
             SaveLevelToPath(path);
         }
         else
@@ -285,7 +334,7 @@ public class LevelEditorWindow : EditorWindow
     private void SaveLevelAsNew()
     {
         string path = EditorUtility.SaveFilePanel(
-            "Save Level",
+            "Save Level As JSON",
             Path.Combine(Application.dataPath, "Resources", "Levels"),
             "NewLevel.json",
             "json");
@@ -301,13 +350,29 @@ public class LevelEditorWindow : EditorWindow
     {
         try
         {
+            if (currentLevel != null)
+            {
+                currentLevel.buses = busConfigurations.ToArray();
+            }
+            
             string json = JsonUtility.ToJson(currentLevel, true);
             File.WriteAllText(path, json);
             AssetDatabase.Refresh();
+            Debug.Log($"Level saved successfully to: {path}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"Level save failed: {e.Message}");
+            Debug.LogError($"Failed to save level: {e.Message}");
+            EditorUtility.DisplayDialog("Error", $"Failed to save level:\n{e.Message}", "OK");
         }
+    }
+
+    private Texture2D CreateColorTexture(Color color)
+    {
+        Texture2D texture = new Texture2D(16, 16);
+        Color[] pixels = Enumerable.Repeat(color, 16 * 16).ToArray();
+        texture.SetPixels(pixels);
+        texture.Apply();
+        return texture;
     }
 }

@@ -25,6 +25,8 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         if (defaultLevelData != null)
         {
             LoadLevelFromJson(defaultLevelData.text);
+            // Initialize buses after loading level
+            BusManager.Instance.InitializeBuses(currentLevelData.buses, colorData);
         }
         else
         {
@@ -121,27 +123,5 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         grid.TryGetValue(pos, out var node);
         return node;
     }
-
-    public void SaveCurrentGrid(string filePath)
-    {
-        if (currentLevelData == null) return;
-
-        string json = JsonUtility.ToJson(currentLevelData, true);
-        File.WriteAllText(filePath, json);
-        
-        #if UNITY_EDITOR
-        UnityEditor.AssetDatabase.Refresh();
-        #endif
-    }
-
-    [ContextMenu("Save Test Level")]
-    public void SaveTestLevel()
-    {
-        if (currentLevelData != null)
-        {
-            string path = Application.dataPath + "/Resources/Levels/test_level.json";
-            SaveCurrentGrid(path);
-            Debug.Log("Level saved to: " + path);
-        }
-    }
+    
 }

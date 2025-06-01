@@ -2,37 +2,26 @@ using UnityEngine;
 
 public class Bus : MonoBehaviour
 {
-    public string BusColor;
-    public int seatCount = 2;
+    public string BusColor { get; private set; }
+    public int SeatCount { get; private set; }
     private int occupiedSeats = 0;
-    
-    [SerializeField] private ColorData colorData;
     private Renderer rend;
 
-    private void Awake()
+    public void Initialize(string color, int seatCount, ColorData colorData)
     {
-        rend = GetComponent<Renderer>();
-    }
-
-    public void Init(string color, ColorData data)
-    {
-        colorData = data;
         BusColor = color;
-        SetColorVisual();
-    }
-
-    void SetColorVisual()
-    {
-        if (rend == null) rend = GetComponent<Renderer>();
-        rend.material.color = colorData.GetColor(BusColor);
+        SeatCount = seatCount;
+        
+        rend = GetComponent<Renderer>();
+        rend.material.color = colorData.GetColor(color);
     }
 
     public void OccupySeat()
     {
         occupiedSeats++;
-        if (occupiedSeats >= seatCount)
+        if (occupiedSeats >= SeatCount)
         {
-            BusManager.Instance.BusFull();
+            BusManager.Instance.ActivateNextBus();
         }
     }
 }

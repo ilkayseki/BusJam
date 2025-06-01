@@ -14,18 +14,35 @@
         "White",
         "White",
         "White",
-        "White",
-        "White",
-        "Red",
-        "Blue",
-        "White",
         "Blue",
         "White",
         "White",
         "White",
-        "Red",
+        "White",
         "Blue",
+        "White",
+        "White",
+        "Blue",
+        "White",
         "Red",
-        "Blue"
+        "White",
+        "Red"
+    ],
+    "buses": [
+        {
+            "colorName": "Red",
+            "seatCount": 2,
+            "order": 1
+        },
+        {
+            "colorName": "Blue",
+            "seatCount": 2,
+            "order": 2
+        },
+        {
+            "colorName": "Blue",
+            "seatCount": 2,
+            "order": 3
+        }
     ]
 }
