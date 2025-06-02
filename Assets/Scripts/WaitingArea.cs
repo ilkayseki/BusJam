@@ -101,14 +101,20 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
             if (waitingCharacters[i] != null && waitingCharacters[i].CharacterColor == busColor)
             {
                 Character character = waitingCharacters[i];
-                waitingCharacters[i] = null;
+                FreeSlot(i);
                 
-                // Unparent before destroying
-                character.transform.SetParent(null);
-                
-                character.transform.DOMoveY(character.transform.position.y + 1f, 0.5f)
-                    .OnComplete(() => Destroy(character.gameObject));
+                // Otobüse binme animasyonu
+                character.transform.DOMove(GetBusEntryPosition(), 0.5f)
+                    .OnComplete(() => {
+                        BusManager.Instance.GetActiveBus()?.OccupySeat();
+                        Destroy(character.gameObject);
+                    });
             }
         }
+    }
+    private Vector3 GetBusEntryPosition()
+    {
+        // Otobüs giriş pozisyonunu döndür (otobüsün konumuna göre ayarlayın)
+        return BusManager.Instance.GetActiveBus()?.transform.position ?? Vector3.zero;
     }
 }

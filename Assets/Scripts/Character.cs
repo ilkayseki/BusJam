@@ -7,7 +7,7 @@ public class Character : MonoBehaviour
 {
     private GridNode currentNode;
     private Renderer rend;
-    public string CharacterColor;
+    public string CharacterColor { get; private set; }
     private ColorData colorData;
     private bool isMoving = false;
     private Bus bus;
@@ -38,15 +38,29 @@ public class Character : MonoBehaviour
         if (!colorData.ShouldSpawnCharacter(CharacterColor)) return;
 
         bus = BusManager.Instance.GetActiveBus();
-        if (bus == null || bus.BusColor != CharacterColor) return;
+        if (bus == null) return;
 
         if (currentNode.Position.y == 0)
         {
-            DestroyCharacter();
+            HandleYZeroPosition();
             return;
         }
 
         MoveToNearestYZero();
+    }
+
+    private void HandleYZeroPosition()
+    {
+        if (bus.BusColor == CharacterColor)
+        {
+            // Doğrudan yok et (otobüsle aynı renk)
+            DestroyCharacter();
+        }
+        else
+        {
+            // Doğrudan bekleme alanına git
+            MoveToWaitingArea();
+        }
     }
 
     private void MoveToNearestYZero()
@@ -65,7 +79,7 @@ public class Character : MonoBehaviour
 
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
-            DestroyCharacter();
+            HandleYZeroPosition();
         });
     }
 
@@ -97,7 +111,7 @@ public class Character : MonoBehaviour
                 
                 if (neighborPos.y == 0)
                 {
-                    newPath.RemoveAt(0);
+                    newPath.RemoveAt(0); // Remove starting node
                     return newPath;
                 }
 
@@ -108,11 +122,31 @@ public class Character : MonoBehaviour
         return null;
     }
 
+    private void MoveToWaitingArea()
+    {
+        int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
+        if (!slotIndex.HasValue)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        // Doğrudan bekleme alanına git
+        Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
+        
+        transform.DOMove(slotPosition, 0.5f)
+            .SetEase(Ease.InOutQuad)
+            .OnComplete(() => {
+                WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
+                isMoving = false;
+            });
+    }
+
     private Vector3 GetWorldPosition(Vector2Int gridPos)
     {
         int flippedY = (GridManager.Instance.height - 1) - gridPos.y;
         return new Vector3(
-            gridPos.x * GridManager.Instance.cellSize, 
+            gridPos.x * GridManager.Instance.cellSize,
             0.5f,
             flippedY * GridManager.Instance.cellSize
         );

@@ -12,7 +12,6 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
     {
         ClearBuses();
         
-        // Order buses by their order value
         var orderedBuses = busData.OrderBy(b => b.order).ToArray();
         for (int i = 0; i < orderedBuses.Length; i++)
         {
@@ -26,7 +25,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
                 colorData
             );
             
-            busObj.SetActive(i == 0); // Only activate first bus
+            busObj.SetActive(i == 0);
             activeBuses.Add(bus);
         }
     }
@@ -45,10 +44,21 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
             activeBuses[currentBusIndex].gameObject.SetActive(false);
             currentBusIndex++;
             activeBuses[currentBusIndex].gameObject.SetActive(true);
+            
+            // Yeni otobüs aktif olduğunda bekleme alanını kontrol et
+            CheckWaitingAreaForMatches();
         }
         else
         {
             Debug.Log("No more buses available");
+        }
+    }
+    private void CheckWaitingAreaForMatches()
+    {
+        if (activeBuses.Count > currentBusIndex)
+        {
+            string currentBusColor = activeBuses[currentBusIndex].BusColor;
+            WaitingArea.Instance.CheckForMatchingCharacters(currentBusColor);
         }
     }
 
