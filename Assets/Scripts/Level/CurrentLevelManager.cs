@@ -1,18 +1,48 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class CurrentLevelManager : MonoBehaviour
+public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevelManager>
 {
-    // Start is called before the first frame update
-    void Start()
+    private string _currentJsonPath;
+    private int _maxUnlockedLevel = 1;
+    private int _currentLevelNumber;
+
+    public string CurrentJsonPath => _currentJsonPath;
+    public int MaxUnlockedLevel => _maxUnlockedLevel;
+
+    private void Start()
     {
-        
+        // PlayerPrefs kontrolü
+        if (!PlayerPrefs.HasKey("MaxUnlockedLevel"))
+        {
+            PlayerPrefs.SetInt("MaxUnlockedLevel", 1);
+            PlayerPrefs.Save();
+        }
+        _maxUnlockedLevel = PlayerPrefs.GetInt("MaxUnlockedLevel", 1);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void SetCurrentLevel(string jsonPath)
     {
-        
+        // .json uzantısı varsa kaldır
+        _currentJsonPath = jsonPath.Replace(".json", "");
+        _currentLevelNumber = int.Parse(_currentJsonPath.Replace("Levels/level", ""));
+    }
+
+    public void OnGameStateChanged(GameState newState)
+    {
+        if (newState == GameState.Finished)
+        {
+            CompleteLevel(_currentLevelNumber);
+        }
+    }
+
+    private void CompleteLevel(int levelNumber)
+    {
+        if (levelNumber >= _maxUnlockedLevel)
+        {
+            _maxUnlockedLevel = levelNumber + 1;
+            PlayerPrefs.SetInt("MaxUnlockedLevel", _maxUnlockedLevel);
+            PlayerPrefs.Save();
+            Debug.Log($"Level {levelNumber} completed! Unlocked level {_maxUnlockedLevel}");
+        }
     }
 }

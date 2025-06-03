@@ -52,18 +52,18 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
     {
         _currentState = newState;
         NotifyObservers();
-        
+    
         switch (_currentState)
         {
             case GameState.Finished:
                 Debug.Log("TEBRİKLER! Tüm otobüsler doldu.");
+                CurrentLevelManager.Instance.OnGameStateChanged(GameState.Finished);
                 break;
             case GameState.GameOver:
                 Debug.Log("OYUN BİTTİ! Bekleme alanı doldu.");
                 break;
         }
     }
-
     private void NotifyObservers()
     {
         foreach (var observer in _observers)

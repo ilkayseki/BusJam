@@ -11,7 +11,32 @@ public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
 
     private void Awake()
     {
-        LoadAndSetupLevel();
+        LoadAndSetupLevel1();
+    }
+
+    public void LoadAndSetupLevel1()
+    {
+        // CurrentLevelManager'dan path'i al
+        string levelPath = CurrentLevelManager.Instance.CurrentJsonPath;
+    
+        TextAsset levelFile = Resources.Load<TextAsset>(LEVEL_PATH);
+        if (levelFile == null)
+        {
+            Debug.LogError($"Level file not found at: {levelPath}");
+            return;
+        }
+
+        _currentLevelData = JsonUtility.FromJson<LevelData>(levelFile.text);
+    
+        // CurrentLevelManager'a level numarasını bildir
+        CurrentLevelManager.Instance.SetCurrentLevel(levelPath);
+        if (_currentLevelData == null)
+        {
+            Debug.LogError("Failed to parse level data!");
+            return;
+        }
+
+        InitializeManagers();
     }
 
     public void LoadAndSetupLevel()
@@ -29,7 +54,7 @@ public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
             Debug.LogError("Failed to parse level data!");
             return;
         }
-
+        _currentLevelData = JsonUtility.FromJson<LevelData>(levelFile.text);
         InitializeManagers();
     }
 
