@@ -2,10 +2,15 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 
 public class BusManager : MonoBehaviourSingleton<BusManager>
 {
     [SerializeField] public GameObject busPrefab;
+    [SerializeField] public Transform stopPosition;
+    [SerializeField] private Transform finishPosition;
+    [SerializeField] private float busMoveDuration = 2f;
+    
     private List<Bus> activeBuses = new List<Bus>();
     private int currentBusIndex = 0;
     public event Action OnAllBusesFull;
@@ -23,7 +28,8 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         var orderedBuses = busData.OrderBy(b => b.order).ToArray();
         for (int i = 0; i < orderedBuses.Length; i++)
         {
-            GameObject busObj = Instantiate(busPrefab, new Vector3(transform.position.x-orderedBuses[i].order,transform.position.y,transform.position.z), Quaternion.identity);
+            Vector3 spawnPos = new Vector3(-1 - (i * 5), 0, transform.position.z); // Staggered spawn positions
+            GameObject busObj = Instantiate(busPrefab, spawnPos, Quaternion.identity);
             busObj.transform.parent = transform;
             Bus bus = busObj.GetComponent<Bus>();
             
@@ -33,8 +39,43 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
                 colorData
             );
             
-            busObj.SetActive(i == 0);
+            busObj.SetActive(true);
             activeBuses.Add(bus);
+        }
+
+        // Start moving the first bus to the stop
+        if (activeBuses.Count > 0)
+        {
+            MoveCurrentBusToStop();
+        }
+    }
+
+    public void BusFilled(Bus filledBus)
+    {
+        // Move filled bus to finish position
+        filledBus.MoveToFinish(finishPosition.transform.position, busMoveDuration, () => {
+            // Otobüs yok edildikten sonra sıradaki otobüsü hareket ettir
+            activeBuses.Remove(filledBus); // Listeden kaldır
+        
+            if (activeBuses.Count > 0)
+            {
+                MoveCurrentBusToStop();
+            }
+            else
+            {
+                OnAllBusesFull?.Invoke();
+            }
+        });
+    }
+
+    private void MoveCurrentBusToStop()
+    {
+        if (currentBusIndex < activeBuses.Count)
+        {
+            activeBuses[currentBusIndex].MoveToStop(stopPosition.transform.position, busMoveDuration, () => {
+                // When bus arrives at stop, check for matching characters
+                CheckWaitingAreaForMatches();
+            });
         }
     }
 
@@ -45,26 +86,9 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         return null;
     }
 
-    public void ActivateNextBus()
-    {
-        if (currentBusIndex < activeBuses.Count - 1)
-        {
-            activeBuses[currentBusIndex].gameObject.SetActive(false);
-            currentBusIndex++;
-            activeBuses[currentBusIndex].gameObject.SetActive(true);
-            
-            // Yeni otobüs aktif olduğunda bekleme alanını kontrol et
-            CheckWaitingAreaForMatches();
-        }
-        else
-        {
-            activeBuses[currentBusIndex].gameObject.SetActive(false);
-            OnAllBusesFull?.Invoke();
-        }
-    }
     private void CheckWaitingAreaForMatches()
     {
-        if (activeBuses.Count > currentBusIndex)
+        if (currentBusIndex < activeBuses.Count)
         {
             string currentBusColor = activeBuses[currentBusIndex].BusColor;
             WaitingArea.Instance.CheckForMatchingCharacters(currentBusColor);
@@ -73,10 +97,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
 
     private void ClearBuses()
     {
-        foreach (var bus in activeBuses)
-        {
-            if (bus != null) Destroy(bus.gameObject);
-        }
+        // Artık direkt yok etmeye gerek yok, MoveToFinish içinde yok ediliyor
         activeBuses.Clear();
         currentBusIndex = 0;
     }

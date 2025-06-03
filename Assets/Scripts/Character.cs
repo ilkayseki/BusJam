@@ -41,8 +41,14 @@ public class Character : MonoBehaviour
         bus = BusManager.Instance.GetActiveBus();
         if (bus == null) return;
 
+        // Check if active bus is at stop position
+        if (Vector3.Distance(bus.transform.position, BusManager.Instance.stopPosition.transform.position) > 0.1f)
+        {
+            return; // Don't allow clicks if bus isn't at stop
+        }
+
         InputManager.Instance.BlockInput(true);
-        
+    
         if (currentNode.Position.y == 0)
         {
             HandleYZeroPosition();
@@ -52,6 +58,7 @@ public class Character : MonoBehaviour
 
         StartMovement();
     }
+    
 
     private void StartMovement()
     {
