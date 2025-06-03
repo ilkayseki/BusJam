@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevelManager>
+public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevelManager>,IGameStateObserver
 {
     private string _currentJsonPath;
     private int _maxUnlockedLevel = 1;

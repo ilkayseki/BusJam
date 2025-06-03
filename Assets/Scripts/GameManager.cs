@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -9,7 +10,6 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
     private List<IGameStateObserver> _observers = new List<IGameStateObserver>();
 
     public GameState CurrentState => _currentState;
-
     private void Start()
     {
         BusManager.Instance.OnAllBusesFull += OnAllBusesFull;

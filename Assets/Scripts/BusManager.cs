@@ -5,7 +5,7 @@ using System.Linq;
 
 public class BusManager : MonoBehaviourSingleton<BusManager>
 {
-    public GameObject busPrefab;
+    [SerializeField] public GameObject busPrefab;
     private List<Bus> activeBuses = new List<Bus>();
     private int currentBusIndex = 0;
     public event Action OnAllBusesFull;
