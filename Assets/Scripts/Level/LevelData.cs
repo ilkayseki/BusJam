@@ -5,7 +5,8 @@ public class LevelData
     public int height;
     public string[] nodeColors;
     public BusData[] buses;
-    public int waitingAreaSize = 3; // Varsayılan değer 3
+    public int waitingAreaSize = 3;
+    public float levelTime = 60f; // Varsayılan 60 saniye
 }
 
 [System.Serializable]

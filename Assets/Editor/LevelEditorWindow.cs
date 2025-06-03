@@ -108,6 +108,24 @@ public class LevelEditorWindow : EditorWindow
             gridWidth = EditorGUILayout.IntField("Width", gridWidth);
             gridHeight = EditorGUILayout.IntField("Height", gridHeight);
             waitingAreaSize = EditorGUILayout.IntField("Waiting Area Size", waitingAreaSize);
+            // Grid Operations
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Create New Grid"))
+            {
+                CreateNewGrid();
+            }
+            
+            //Time Settings Section
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Time Settings", EditorStyles.boldLabel);
+            if (currentLevel != null)
+            {
+                currentLevel.levelTime = EditorGUILayout.FloatField("Level Time (seconds)", currentLevel.levelTime);
+            }
+            else
+            {
+                EditorGUILayout.FloatField("Level Time (seconds)", 60f);
+            }
             
             // Color Selection
             EditorGUILayout.Space();
@@ -186,13 +204,6 @@ public class LevelEditorWindow : EditorWindow
             {
                 currentLevel.buses = busConfigurations.ToArray();
                 EditorUtility.SetDirty(this);
-            }
-
-            // Grid Operations
-            EditorGUILayout.Space();
-            if (GUILayout.Button("Create New Grid"))
-            {
-                CreateNewGrid();
             }
 
             // Grid Display

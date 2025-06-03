@@ -64,5 +64,11 @@ public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
         {
             BusManager.Instance.InitializeBuses(_currentLevelData.buses, colorData);
         }
+        // TimeManager'ı başlat
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.Initialize(_currentLevelData.levelTime);
+        }
+
     }
 }

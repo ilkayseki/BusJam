@@ -29,5 +29,6 @@
             "order": 3
         }
     ],
-    "waitingAreaSize": 1
+    "waitingAreaSize": 1,
+    "levelTime": 60.0
 }

@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
     {
         BusManager.Instance.OnAllBusesFull += OnAllBusesFull;
         WaitingArea.Instance.OnWaitingAreaFull += OnWaitingAreaFull;
+        TimeManager.Instance.OnTimeOver += OnTimeOver;
         ChangeState(GameState.Start);
     }
 
@@ -33,17 +34,17 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
         }
     }
 
-    public void StartGame()
-    {
-        ChangeState(GameState.Playing);
-    }
-
     private void OnAllBusesFull()
     {
         ChangeState(GameState.Finished);
     }
 
     private void OnWaitingAreaFull()
+    {
+        TimeManager.Instance.StopTimer();
+        ChangeState(GameState.GameOver);
+    }
+    private void OnTimeOver()
     {
         ChangeState(GameState.GameOver);
     }
@@ -58,6 +59,7 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
             case GameState.Finished:
                 Debug.Log("TEBRİKLER! Tüm otobüsler doldu.");
                 CurrentLevelManager.Instance.OnGameStateChanged(GameState.Finished);
+                
                 break;
             case GameState.GameOver:
                 Debug.Log("OYUN BİTTİ! Bekleme alanı doldu.");
