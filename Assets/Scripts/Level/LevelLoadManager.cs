@@ -40,11 +40,17 @@ public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
     private void InitializeManagers()
     {
         // ColorData'yı bul
-        ColorData colorData = Resources.Load<ColorData>(COLOR_PATH);;
+        ColorData colorData = Resources.Load<ColorData>(COLOR_PATH);
         if (colorData == null)
         {
             Debug.LogError("ColorData not found in scene!");
             return;
+        }
+
+        // WaitingArea'yi başlat
+        if (WaitingArea.Instance != null)
+        {
+            WaitingArea.Instance.InitializeWaitingArea(_currentLevelData.waitingAreaSize);
         }
 
         // GridManager'ı başlat

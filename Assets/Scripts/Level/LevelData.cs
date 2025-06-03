@@ -5,6 +5,7 @@ public class LevelData
     public int height;
     public string[] nodeColors;
     public BusData[] buses;
+    public int waitingAreaSize = 3; // Varsayılan değer 3
 }
 
 [System.Serializable]

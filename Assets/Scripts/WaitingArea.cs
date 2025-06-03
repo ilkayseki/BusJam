@@ -11,21 +11,16 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
     private GameObject[] slotVisuals; // Visual representation of slots
     public event Action OnWaitingAreaFull;
 
-    private void Awake()
+    public void InitializeWaitingArea(int size)
     {
-        InitializeSlots();
-        CreateSlotVisuals();
-    }
+        slotCount = size; // slotCount'ı güncelle
+        slotPositions = new Vector3[size];
+        waitingCharacters = new Character[size];
+        slotVisuals = new GameObject[size];
     
-    private void InitializeSlots()
-    {
-        slotPositions = new Vector3[slotCount];
-        waitingCharacters = new Character[slotCount];
-        slotVisuals = new GameObject[slotCount];
-        
-        float startX = -(slotCount - 1) * slotSpacing / 2f;
-        
-        for (int i = 0; i < slotCount; i++)
+        float startX = -(size - 1) * slotSpacing / 2f;
+    
+        for (int i = 0; i < size; i++)
         {
             slotPositions[i] = new Vector3(
                 startX + i * slotSpacing, 
@@ -33,18 +28,24 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
                 0f
             );
         }
+    
+        CreateSlotVisuals();
     }
     
     private void CreateSlotVisuals()
     {
-        for (int i = 0; i < slotCount; i++)
+        // Önceki slot visual'ları temizle
+        foreach (var slot in slotVisuals)
         {
-            // Create a new GameObject for each slot
+            if (slot != null) Destroy(slot);
+        }
+        
+        for (int i = 0; i < slotVisuals.Length; i++)
+        {
             GameObject slot = new GameObject($"Slot_{i}");
             slot.transform.SetParent(transform);
             slot.transform.localPosition = slotPositions[i];
             
-            // Add a visible component (you can customize this)
             var sphere = slot.AddComponent<SphereCollider>();
             sphere.radius = 0.2f;
             sphere.isTrigger = true;
@@ -55,14 +56,15 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
     
     public int? GetAvailableSlot()
     {
-        for (int i = 0; i < slotCount; i++)
+        // waitingCharacters.Length kullanarak dizi sınırlarını aşmaktan kaçının
+        for (int i = 0; i < waitingCharacters.Length; i++)
         {
             if (waitingCharacters[i] == null)
             {
                 return i;
             }
         }
-    
+
         // Eğer boş slot yoksa direkt GameOver tetikle
         OnWaitingAreaFull?.Invoke();
         return null;

@@ -9,6 +9,7 @@ public class LevelEditorWindow : EditorWindow
 {
     private int gridWidth = 5;
     private int gridHeight = 5;
+    private int waitingAreaSize = 3;
     private ColorData colorData;
     private string[] colorOptions;
     private int selectedColorIndex = 0;
@@ -106,6 +107,7 @@ public class LevelEditorWindow : EditorWindow
             EditorGUILayout.LabelField("Grid Settings", EditorStyles.boldLabel);
             gridWidth = EditorGUILayout.IntField("Width", gridWidth);
             gridHeight = EditorGUILayout.IntField("Height", gridHeight);
+            waitingAreaSize = EditorGUILayout.IntField("Waiting Area Size", waitingAreaSize);
             
             // Color Selection
             EditorGUILayout.Space();
@@ -238,6 +240,7 @@ public class LevelEditorWindow : EditorWindow
             currentLevel = JsonUtility.FromJson<LevelData>(levelFile.text);
             gridWidth = currentLevel.width;
             gridHeight = currentLevel.height;
+            waitingAreaSize = currentLevel.waitingAreaSize;
             
             gridTextures = new Texture2D[gridWidth, gridHeight];
             
@@ -268,7 +271,8 @@ public class LevelEditorWindow : EditorWindow
             width = Mathf.Clamp(gridWidth, 1, 20),
             height = Mathf.Clamp(gridHeight, 1, 20),
             nodeColors = new string[gridWidth * gridHeight],
-            buses = busConfigurations.ToArray()
+            buses = busConfigurations.ToArray(),
+            waitingAreaSize = waitingAreaSize
         };
 
         gridTextures = new Texture2D[currentLevel.width, currentLevel.height];
@@ -375,6 +379,7 @@ public class LevelEditorWindow : EditorWindow
             if (currentLevel != null)
             {
                 currentLevel.buses = busConfigurations.ToArray();
+                currentLevel.waitingAreaSize = waitingAreaSize;
             }
             
             string json = JsonUtility.ToJson(currentLevel, true);

@@ -6,7 +6,7 @@
         "X",
         "Blue",
         "X",
-        "Red",
+        "Blue",
         "X",
         "Blue",
         "X",
@@ -14,14 +14,20 @@
     ],
     "buses": [
         {
-            "colorName": "Blue",
+            "colorName": "Red",
             "seatCount": 1,
             "order": 1
         },
         {
+            "colorName": "Blue",
+            "seatCount": 3,
+            "order": 2
+        },
+        {
             "colorName": "Red",
             "seatCount": 1,
-            "order": 2
+            "order": 3
         }
-    ]
+    ],
+    "waitingAreaSize": 1
 }
