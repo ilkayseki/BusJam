@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using DG.Tweening;
 
@@ -8,7 +9,8 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
     private Vector3[] slotPositions;
     private Character[] waitingCharacters;
     private GameObject[] slotVisuals; // Visual representation of slots
-    
+    public event Action OnWaitingAreaFull;
+
     private void Awake()
     {
         InitializeSlots();
@@ -60,6 +62,9 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
                 return i;
             }
         }
+    
+        // Eğer boş slot yoksa direkt GameOver tetikle
+        OnWaitingAreaFull?.Invoke();
         return null;
     }
     
@@ -100,14 +105,15 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
         {
             if (waitingCharacters[i] != null && waitingCharacters[i].CharacterColor == busColor)
             {
+                InputManager.Instance.BlockInput(true);
                 Character character = waitingCharacters[i];
                 FreeSlot(i);
                 
-                // Otobüse binme animasyonu
                 character.transform.DOMove(GetBusEntryPosition(), 0.5f)
                     .OnComplete(() => {
                         BusManager.Instance.GetActiveBus()?.OccupySeat();
                         Destroy(character.gameObject);
+                        InputManager.Instance.BlockInput(false);
                     });
             }
         }

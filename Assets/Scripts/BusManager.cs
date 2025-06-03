@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
     public GameObject busPrefab;
     private List<Bus> activeBuses = new List<Bus>();
     private int currentBusIndex = 0;
+    public event Action OnAllBusesFull;
 
     public void InitializeBuses(BusData[] busData, ColorData colorData)
     {
@@ -50,7 +52,8 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         }
         else
         {
-            Debug.Log("No more buses available");
+            activeBuses[currentBusIndex].gameObject.SetActive(false);
+            OnAllBusesFull?.Invoke();
         }
     }
     private void CheckWaitingAreaForMatches()

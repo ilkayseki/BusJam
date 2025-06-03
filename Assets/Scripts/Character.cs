@@ -11,11 +11,12 @@ public class Character : MonoBehaviour
     private ColorData colorData;
     private bool isMoving = false;
     private Bus bus;
+    private Sequence movementSequence;
 
     private void Awake()
     {
         rend = GetComponentInChildren<Renderer>();
-        if (rend == null) rend = GetComponent<Renderer>();
+        if (rend == null) rend = GetComponentInChildren<Renderer>();
     }
 
     public void Initialize(GridNode node, ColorData data)
@@ -34,42 +35,35 @@ public class Character : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (isMoving) return;
+        if (InputManager.Instance.IsInputBlocked || isMoving) return;
         if (!colorData.ShouldSpawnCharacter(CharacterColor)) return;
 
         bus = BusManager.Instance.GetActiveBus();
         if (bus == null) return;
 
+        InputManager.Instance.BlockInput(true);
+        
         if (currentNode.Position.y == 0)
         {
             HandleYZeroPosition();
+            InputManager.Instance.BlockInput(false);
             return;
         }
 
-        MoveToNearestYZero();
+        StartMovement();
     }
 
-    private void HandleYZeroPosition()
-    {
-        if (bus.BusColor == CharacterColor)
-        {
-            // Doğrudan yok et (otobüsle aynı renk)
-            DestroyCharacter();
-        }
-        else
-        {
-            // Doğrudan bekleme alanına git
-            MoveToWaitingArea();
-        }
-    }
-
-    private void MoveToNearestYZero()
+    private void StartMovement()
     {
         List<GridNode> path = FindPathToNearestYZero();
-        if (path == null || path.Count == 0) return;
+        if (path == null || path.Count == 0)
+        {
+            InputManager.Instance.BlockInput(false);
+            return;
+        }
 
         isMoving = true;
-        Sequence movementSequence = DOTween.Sequence();
+        movementSequence = DOTween.Sequence();
 
         foreach (var node in path)
         {
@@ -80,9 +74,44 @@ public class Character : MonoBehaviour
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
             HandleYZeroPosition();
+            isMoving = false;
+            InputManager.Instance.BlockInput(false);
         });
     }
 
+    private void HandleYZeroPosition()
+    {
+        if (bus.BusColor == CharacterColor)
+        {
+            // Renk uyumu varsa direkt yok ol
+            DestroyCharacter();
+        }
+        else
+        {
+            // Renk uyumu yoksa bekleme alanına git
+            MoveToWaitingArea();
+        }
+    }
+
+    private void MoveToWaitingArea()
+    {
+        int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
+        if (!slotIndex.HasValue)
+        {
+            // Slot yoksa direkt karakteri yok et ve GameOver durumu zaten tetiklendi
+            Destroy(gameObject);
+            return;
+        }
+
+        Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
+    
+        movementSequence = DOTween.Sequence();
+        movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
+        movementSequence.OnComplete(() => {
+            WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
+            isMoving = false;
+        });
+    }
     private List<GridNode> FindPathToNearestYZero()
     {
         if (currentNode.Position.y == 0) return new List<GridNode>();
@@ -111,7 +140,7 @@ public class Character : MonoBehaviour
                 
                 if (neighborPos.y == 0)
                 {
-                    newPath.RemoveAt(0); // Remove starting node
+                    newPath.RemoveAt(0);
                     return newPath;
                 }
 
@@ -120,26 +149,6 @@ public class Character : MonoBehaviour
             }
         }
         return null;
-    }
-
-    private void MoveToWaitingArea()
-    {
-        int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
-        if (!slotIndex.HasValue)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        // Doğrudan bekleme alanına git
-        Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
-        
-        transform.DOMove(slotPosition, 0.5f)
-            .SetEase(Ease.InOutQuad)
-            .OnComplete(() => {
-                WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
-                isMoving = false;
-            });
     }
 
     private Vector3 GetWorldPosition(Vector2Int gridPos)
@@ -157,5 +166,14 @@ public class Character : MonoBehaviour
         if (currentNode != null) currentNode.SetOccupied(false, null);
         if (bus != null) bus.OccupySeat();
         Destroy(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (movementSequence != null && movementSequence.IsActive())
+        {
+            movementSequence.Kill();
+            InputManager.Instance.BlockInput(false);
+        }
     }
 }
