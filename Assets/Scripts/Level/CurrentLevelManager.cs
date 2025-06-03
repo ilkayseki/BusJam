@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevelManager>
+public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevelManager>, IGameStateObserver
 {
     private string _currentJsonPath;
     private int _maxUnlockedLevel = 1;
@@ -22,7 +22,6 @@ public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevel
 
     public void SetCurrentLevel(string jsonPath)
     {
-        // .json uzantısı varsa kaldır
         _currentJsonPath = jsonPath.Replace(".json", "");
         _currentLevelNumber = int.Parse(_currentJsonPath.Replace("Levels/level", ""));
     }
@@ -43,6 +42,15 @@ public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevel
             PlayerPrefs.SetInt("MaxUnlockedLevel", _maxUnlockedLevel);
             PlayerPrefs.Save();
             Debug.Log($"Level {levelNumber} completed! Unlocked level {_maxUnlockedLevel}");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Observer listesinden çıkar
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UnregisterObserver(this);
         }
     }
 }

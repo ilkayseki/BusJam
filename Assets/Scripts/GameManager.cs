@@ -10,6 +10,16 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
     private List<IGameStateObserver> _observers = new List<IGameStateObserver>();
 
     public GameState CurrentState => _currentState;
+    private void OnEnable()
+    {
+        RegisterObserver(CurrentLevelManager.Instance);
+    }
+
+    private void OnDisable()
+    {  
+        UnregisterObserver(CurrentLevelManager.Instance);
+    }
+
     private void Start()
     {
         BusManager.Instance.OnAllBusesFull += OnAllBusesFull;
@@ -58,8 +68,6 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
         {
             case GameState.Finished:
                 Debug.Log("TEBRİKLER! Tüm otobüsler doldu.");
-                CurrentLevelManager.Instance.OnGameStateChanged(GameState.Finished);
-                
                 break;
             case GameState.GameOver:
                 Debug.Log("OYUN BİTTİ! Bekleme alanı doldu.");
