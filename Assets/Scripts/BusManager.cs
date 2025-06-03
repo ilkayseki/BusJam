@@ -12,6 +12,12 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
 
     public void InitializeBuses(BusData[] busData, ColorData colorData)
     {
+        if(busPrefab == null)
+        {
+            Debug.LogError("BusPrefab is null! Assign prefab in inspector or load it.");
+            return;
+        }
+        
         ClearBuses();
         
         var orderedBuses = busData.OrderBy(b => b.order).ToArray();

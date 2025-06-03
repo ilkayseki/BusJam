@@ -71,15 +71,6 @@ public class GameManager : MonoBehaviourSingleton<GameManager>
             observer.OnGameStateChanged(_currentState);
         }
     }
-
-    private void OnDestroy()
-    {
-        if (BusManager.Instance != null)
-            BusManager.Instance.OnAllBusesFull -= OnAllBusesFull;
-        
-        if (WaitingArea.Instance != null)
-            WaitingArea.Instance.OnWaitingAreaFull -= OnWaitingAreaFull;
-    }
 }
 
 public interface IGameStateObserver
