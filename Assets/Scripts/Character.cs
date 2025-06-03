@@ -99,19 +99,23 @@ public class Character : MonoBehaviour
         if (!slotIndex.HasValue)
         {
             // Slot yoksa direkt karakteri yok et ve GameOver durumu zaten tetiklendi
+            isMoving = false; // isMoving'i false yap
             Destroy(gameObject);
             return;
         }
 
         Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
     
+        isMoving = true; // Hareket başladı
+        currentNode.SetOccupied(false, null);
         movementSequence = DOTween.Sequence();
         movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
         movementSequence.OnComplete(() => {
             WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
-            isMoving = false;
+            isMoving = false; // Hareket bittiğinde isMoving'i false yap
         });
     }
+
     private List<GridNode> FindPathToNearestYZero()
     {
         if (currentNode.Position.y == 0) return new List<GridNode>();
