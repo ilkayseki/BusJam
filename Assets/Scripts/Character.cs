@@ -13,10 +13,7 @@ public class Character : MonoBehaviour
     private Bus bus;
     private Sequence movementSequence;
     private CharacterAnimator characterAnimator;
-
-    private bool isInWaitingArea = false;
     
-    public bool IsInWaitingArea => isInWaitingArea;
     private CharacterState _currentState = CharacterState.Idle;
     public CharacterState CurrentState 
     {
@@ -24,7 +21,7 @@ public class Character : MonoBehaviour
         private set
         {
             _currentState = value;
-            OnStateChanged(value);
+            OnStateChanged(_currentState);
         }
     }
     private void OnStateChanged(CharacterState newState)
@@ -37,6 +34,7 @@ public class Character : MonoBehaviour
                 
             case CharacterState.Idle:
             case CharacterState.InWaitingArea:
+                Debug.LogError("InWaitingArea");
                 characterAnimator.SetRunning(false);
                 break;
         }
@@ -142,12 +140,15 @@ public class Character : MonoBehaviour
         Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
     
         movementSequence = DOTween.Sequence();
+        Debug.LogError("Varıyor...");
+
         movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
         movementSequence.OnComplete(() => {
             WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
             CurrentState = CharacterState.InWaitingArea;
             currentNode.SetOccupied(false, null);
             characterAnimator.ResetRotation();
+            Debug.LogError("VArdı!!!");
         });
     }
     private void DestroyCharacter()
