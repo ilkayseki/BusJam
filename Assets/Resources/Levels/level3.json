@@ -2,27 +2,27 @@
     "width": 5,
     "height": 5,
     "nodeColors": [
+        "Green",
+        "X",
         "Red",
+        "X",
+        "X",
+        "X",
         "Red",
+        "X",
         "Red",
+        "X",
+        "X",
+        "X",
+        "X",
+        "X",
+        "Green",
+        "X",
+        "X",
+        "X",
         "Red",
         "X",
-        "Blue",
-        "Blue",
-        "Blue",
-        "Blue",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
-        "X",
+        "Red",
         "X",
         "X",
         "X",
@@ -30,26 +30,16 @@
     ],
     "buses": [
         {
-            "colorName": "Red",
-            "seatCount": 2,
+            "colorName": "Green",
+            "seatCount": 1,
             "order": 1
         },
         {
-            "colorName": "Blue",
-            "seatCount": 2,
-            "order": 2
-        },
-        {
             "colorName": "Red",
             "seatCount": 2,
-            "order": 3
-        },
-        {
-            "colorName": "Blue",
-            "seatCount": 2,
-            "order": 4
+            "order": 2
         }
     ],
-    "waitingAreaSize": 2,
+    "waitingAreaSize": 3,
     "levelTime": 60.0
 }

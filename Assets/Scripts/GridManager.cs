@@ -34,7 +34,16 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
     {
         int flippedY = (height - 1) - y;
         Vector2Int gridPos = new Vector2Int(x, y);
-        Vector3 worldPos = new Vector3(x * cellSize, 0, flippedY * cellSize);
+
+        float topZ = 4.46f;
+        float zOffset = topZ - ((height - 1) * cellSize);
+        float xOffset = -((width - 1) * cellSize) / 2f;
+
+        Vector3 worldPos = new Vector3(
+            x * cellSize + xOffset,
+            0,
+            zOffset + (flippedY * cellSize)
+        );
 
         GameObject nodeObj = Instantiate(gridNodePrefab, worldPos, Quaternion.identity, transform);
         GridNode node = nodeObj.GetComponent<GridNode>();
@@ -42,7 +51,7 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
         grid.Add(gridPos, node);
 
         string colorName = levelData.nodeColors[y * width + x];
-    
+
         if (!string.IsNullOrEmpty(colorName) && colorData.ShouldSpawnCharacter(colorName))
         {
             node.SetColor(colorName, colorData);
@@ -54,6 +63,7 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
             node.SetOccupied(false, null);
         }
     }
+
 
     private void CreateCharacter(GridNode node, Vector3 position, ColorData colorData)
     {

@@ -34,7 +34,6 @@ public class Character : MonoBehaviour
                 
             case CharacterState.Idle:
             case CharacterState.InWaitingArea:
-                Debug.LogError("InWaitingArea");
                 characterAnimator.SetRunning(false);
                 break;
         }
@@ -140,7 +139,6 @@ public class Character : MonoBehaviour
         Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
     
         movementSequence = DOTween.Sequence();
-        Debug.LogError("Varıyor...");
 
         movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
         movementSequence.OnComplete(() => {
@@ -148,7 +146,6 @@ public class Character : MonoBehaviour
             CurrentState = CharacterState.InWaitingArea;
             currentNode.SetOccupied(false, null);
             characterAnimator.ResetRotation();
-            Debug.LogError("VArdı!!!");
         });
     }
     private void DestroyCharacter()
@@ -201,11 +198,17 @@ public class Character : MonoBehaviour
 
     private Vector3 GetWorldPosition(Vector2Int gridPos)
     {
+        // GridManager ile aynı hesaplamayı yap
         int flippedY = (GridManager.Instance.height - 1) - gridPos.y;
+    
+        float topZ = 4.46f;
+        float zOffset = topZ - ((GridManager.Instance.height - 1) * GridManager.Instance.cellSize);
+        float xOffset = -((GridManager.Instance.width - 1) * GridManager.Instance.cellSize) / 2f;
+
         return new Vector3(
-            gridPos.x * GridManager.Instance.cellSize,
-            0.5f,
-            flippedY * GridManager.Instance.cellSize
+            gridPos.x * GridManager.Instance.cellSize + xOffset,
+            0.5f, // Karakter yüksekliği
+            zOffset + (flippedY * GridManager.Instance.cellSize)
         );
     }
 

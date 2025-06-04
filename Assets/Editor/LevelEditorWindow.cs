@@ -132,18 +132,36 @@ public class LevelEditorWindow : EditorWindow
             EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
             EditorGUILayout.BeginHorizontal();
             selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
-// Yeni eklenen refresh butonu
+            
+            // Yeni eklenen refresh butonu
             if (GUILayout.Button("Refresh Colors", GUILayout.Width(120)))
             {
                 LoadColorData();
                 Debug.Log("ColorData refreshed!");
-    
-                // Bus konfigürasyonlarını da güncelle
-                if (currentLevel != null && busConfigurations != null)
+
+                // Bus konfigürasyonlarını güncelle
+                if (busConfigurations != null)
                 {
-                    currentLevel.buses = busConfigurations.ToArray();
+                    var validColors = colorData.colors.Select(c => c.colorName).ToArray();
+        
+                    for (int i = 0; i < busConfigurations.Count; i++)
+                    {
+                        // Eğer mevcut renk artık geçerli değilse, ilk geçerli renk ile değiştir
+                        if (!validColors.Contains(busConfigurations[i].colorName))
+                        {
+                            if (validColors.Length > 0)
+                            {
+                                busConfigurations[i].colorName = validColors[0];
+                                Debug.Log($"Updated bus configuration {i} to use color {validColors[0]}");
+                            }
+                            else
+                            {
+                                Debug.LogWarning("No valid colors available in ColorData!");
+                            }
+                        }
+                    }
                 }
-    
+
                 // Grid renklerini yenile
                 if (currentLevel != null && gridTextures != null)
                 {
@@ -157,7 +175,7 @@ public class LevelEditorWindow : EditorWindow
                         }
                     }
                 }
-    
+
                 Repaint(); // Pencerenin yeniden çizilmesini sağla
             }
             EditorGUILayout.EndHorizontal();
