@@ -51,5 +51,5 @@
         }
     ],
     "waitingAreaSize": 1,
-    "levelTime": 50.0
+    "levelTime": 5000.0
 }
