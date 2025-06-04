@@ -111,18 +111,10 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
                 Character character = waitingCharacters[i];
                 FreeSlot(i);
                 
-                character.transform.DOMove(GetBusEntryPosition(), 0.5f)
-                    .OnComplete(() => {
-                        BusManager.Instance.GetActiveBus()?.OccupySeat();
-                        Destroy(character.gameObject);
-                        InputManager.Instance.BlockInput(false);
-                    });
+                BusManager.Instance.GetActiveBus()?.OccupySeat();
+                Destroy(character.gameObject);
+                InputManager.Instance.BlockInput(false);
             }
         }
-    }
-    private Vector3 GetBusEntryPosition()
-    {
-        // Otobüs giriş pozisyonunu döndür (otobüsün konumuna göre ayarlayın)
-        return BusManager.Instance.GetActiveBus()?.transform.position ?? Vector3.zero;
     }
 }

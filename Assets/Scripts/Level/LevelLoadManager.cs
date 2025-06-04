@@ -3,8 +3,6 @@ using UnityEngine;
 public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
 {
     private LevelData _currentLevelData;
-    public string COLOR_PATH = "Color/ColorData";
-
 
     public LevelData CurrentLevelData => _currentLevelData;
 
@@ -40,7 +38,7 @@ public class LevelLoadManager : MonoBehaviourSingleton<LevelLoadManager>
     private void InitializeManagers()
     {
         // ColorData'yı bul
-        ColorData colorData = Resources.Load<ColorData>(COLOR_PATH);
+        ColorData colorData = Resources.Load<ColorData>(FilePathManager.Instance.ColorPath);
         if (colorData == null)
         {
             Debug.LogError("ColorData not found in scene!");

@@ -28,7 +28,7 @@ public class BusManager : MonoBehaviourSingleton<BusManager>
         var orderedBuses = busData.OrderBy(b => b.order).ToArray();
         for (int i = 0; i < orderedBuses.Length; i++)
         {
-            Vector3 spawnPos = new Vector3(-1 - (i * 10), 0, transform.position.z); // Staggered spawn positions
+            Vector3 spawnPos = new Vector3(-1 - (i * 10), 0, stopPosition.position.z); // Staggered spawn positions
             GameObject busObj = Instantiate(busPrefab, spawnPos, busPrefab.transform.rotation);
             busObj.transform.parent = transform;
             Bus bus = busObj.GetComponent<Bus>();

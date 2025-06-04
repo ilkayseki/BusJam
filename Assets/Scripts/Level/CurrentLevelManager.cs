@@ -12,18 +12,18 @@ public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevel
     private void Start()
     {
         // PlayerPrefs kontrolü
-        if (!PlayerPrefs.HasKey("MaxUnlockedLevel"))
+        if (!PlayerPrefs.HasKey(FilePathManager.Instance.MaxUnlockedLevel))
         {
-            PlayerPrefs.SetInt("MaxUnlockedLevel", 1);
+            PlayerPrefs.SetInt(FilePathManager.Instance.MaxUnlockedLevel, 1);
             PlayerPrefs.Save();
         }
-        _maxUnlockedLevel = PlayerPrefs.GetInt("MaxUnlockedLevel", 1);
+        _maxUnlockedLevel = PlayerPrefs.GetInt(FilePathManager.Instance.MaxUnlockedLevel, 1);
     }
 
     public void SetCurrentLevel(string jsonPath)
     {
-        _currentJsonPath = jsonPath.Replace(".json", "");
-        _currentLevelNumber = int.Parse(_currentJsonPath.Replace("Levels/level", ""));
+        _currentJsonPath = jsonPath.Replace(FilePathManager.Instance.Json, "");
+        _currentLevelNumber = int.Parse(_currentJsonPath.Replace(FilePathManager.Instance.LevelsLevel, ""));
     }
 
     public void OnGameStateChanged(GameState newState)
@@ -39,7 +39,7 @@ public class CurrentLevelManager : MonoBehaviourSingletonPersistent<CurrentLevel
         if (levelNumber >= _maxUnlockedLevel)
         {
             _maxUnlockedLevel = levelNumber + 1;
-            PlayerPrefs.SetInt("MaxUnlockedLevel", _maxUnlockedLevel);
+            PlayerPrefs.SetInt(FilePathManager.Instance.MaxUnlockedLevel, _maxUnlockedLevel);
             PlayerPrefs.Save();
             Debug.Log($"Level {levelNumber} completed! Unlocked level {_maxUnlockedLevel}");
         }

@@ -12,11 +12,19 @@ public class Character : MonoBehaviour
     private bool isMoving = false;
     private Bus bus;
     private Sequence movementSequence;
+    private CharacterAnimator characterAnimator;
 
+    // Yeni değişken ekleyelim
+    private bool isInWaitingArea = false;
+    
+    // Waiting Area'da olup olmadığını kontrol eden property
+    public bool IsInWaitingArea => isInWaitingArea;
+    
     private void Awake()
     {
         rend = GetComponentInChildren<Renderer>();
-        if (rend == null) rend = GetComponentInChildren<Renderer>();
+        characterAnimator = gameObject.AddComponent<CharacterAnimator>();
+
     }
 
     public void Initialize(GridNode node, ColorData data)
@@ -35,16 +43,19 @@ public class Character : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (InputManager.Instance.IsInputBlocked || isMoving) return;
-        if (!colorData.ShouldSpawnCharacter(CharacterColor)) return;
+        if (InputManager.Instance.IsInputBlocked || 
+            isMoving || 
+            isInWaitingArea ||
+            !colorData.ShouldSpawnCharacter(CharacterColor)) 
+            return;
 
         bus = BusManager.Instance.GetActiveBus();
         if (bus == null) return;
 
-        // Check if active bus is at stop position
+       
         if (Vector3.Distance(bus.transform.position, BusManager.Instance.stopPosition.transform.position) > 0.1f)
         {
-            return; // Don't allow clicks if bus isn't at stop
+            return; 
         }
 
         InputManager.Instance.BlockInput(true);
@@ -70,6 +81,8 @@ public class Character : MonoBehaviour
         }
 
         isMoving = true;
+        characterAnimator.SetRunning(true); // Hareket başladığında running animasyonu
+        
         movementSequence = DOTween.Sequence();
 
         foreach (var node in path)
@@ -80,6 +93,7 @@ public class Character : MonoBehaviour
 
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
+            characterAnimator.SetRunning(false); // Hareket bittiğinde idle animasyonu
             HandleYZeroPosition();
             isMoving = false;
             InputManager.Instance.BlockInput(false);
@@ -99,28 +113,39 @@ public class Character : MonoBehaviour
             MoveToWaitingArea();
         }
     }
-
     private void MoveToWaitingArea()
     {
         int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
         if (!slotIndex.HasValue)
         {
-            // Slot yoksa direkt karakteri yok et ve GameOver durumu zaten tetiklendi
-            isMoving = false; // isMoving'i false yap
+            isMoving = false;
             Destroy(gameObject);
             return;
         }
 
+        isInWaitingArea = true;
+        
         Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
     
-        isMoving = true; // Hareket başladı
+        isMoving = true;
+        characterAnimator.SetRunning(true);
         currentNode.SetOccupied(false, null);
         movementSequence = DOTween.Sequence();
         movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
         movementSequence.OnComplete(() => {
             WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
-            isMoving = false; // Hareket bittiğinde isMoving'i false yap
+            characterAnimator.SetRunning(false);
+            characterAnimator.ResetRotation();
+            isMoving = false;
         });
+    }
+
+    private void DestroyCharacter()
+    {
+        if (currentNode != null) currentNode.SetOccupied(false, null);
+        if (bus != null) bus.OccupySeat();
+        characterAnimator.ResetRotation(); // Otobüse bindiğinde yönü resetle (isteğe bağlı)
+        Destroy(gameObject);
     }
 
     private List<GridNode> FindPathToNearestYZero()
@@ -172,12 +197,7 @@ public class Character : MonoBehaviour
         );
     }
 
-    private void DestroyCharacter()
-    {
-        if (currentNode != null) currentNode.SetOccupied(false, null);
-        if (bus != null) bus.OccupySeat();
-        Destroy(gameObject);
-    }
+    
 
     private void OnDestroy()
     {

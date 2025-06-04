@@ -31,25 +31,25 @@
     "buses": [
         {
             "colorName": "Red",
-            "seatCount": 2,
+            "seatCount": 3,
             "order": 1
         },
         {
             "colorName": "Blue",
-            "seatCount": 1,
+            "seatCount": 3,
             "order": 2
         },
         {
             "colorName": "Red",
-            "seatCount": 1,
+            "seatCount": 3,
             "order": 3
         },
         {
             "colorName": "Blue",
-            "seatCount": 2,
+            "seatCount": 3,
             "order": 4
         }
     ],
-    "waitingAreaSize": 1,
-    "levelTime": 5000.0
+    "waitingAreaSize": 3,
+    "levelTime": 60.0
 }
