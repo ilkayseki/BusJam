@@ -1,34 +1,50 @@
 {
-    "width": 3,
-    "height": 3,
+    "width": 5,
+    "height": 5,
     "nodeColors": [
+        "Green",
+        "X",
+        "X",
+        "Blue",
         "Red",
         "X",
+        "Green",
         "Blue",
+        "X",
+        "X",
+        "X",
+        "Blue",
+        "Green",
+        "X",
         "X",
         "Blue",
         "X",
-        "Blue",
+        "X",
+        "Green",
+        "X",
+        "X",
+        "X",
+        "X",
         "X",
         "Red"
     ],
     "buses": [
         {
-            "colorName": "Red",
-            "seatCount": 1,
+            "colorName": "Green",
+            "seatCount": 4,
             "order": 1
         },
         {
             "colorName": "Blue",
-            "seatCount": 3,
+            "seatCount": 4,
             "order": 2
         },
         {
             "colorName": "Red",
-            "seatCount": 1,
+            "seatCount": 2,
             "order": 3
         }
     ],
-    "waitingAreaSize": 1,
+    "waitingAreaSize": 3,
     "levelTime": 60.0
 }

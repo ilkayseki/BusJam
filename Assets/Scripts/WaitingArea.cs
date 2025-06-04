@@ -1,34 +1,40 @@
 using System;
 using UnityEngine;
 using DG.Tweening;
-
+public enum CharacterState
+{
+    Idle,         // Bekleme durumu
+    Moving,       // Hareket ediyor
+    InWaitingArea, // Waiting Area'da
+    BoardingBus   // Otobüse biniyor
+}
 public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
 {
     public int slotCount = 3;
     public float slotSpacing = 1f;
     private Vector3[] slotPositions;
     private Character[] waitingCharacters;
-    private GameObject[] slotVisuals; // Visual representation of slots
+    private GameObject[] slotVisuals;
     public event Action OnWaitingAreaFull;
 
     public void InitializeWaitingArea(int size)
     {
-        slotCount = size; // slotCount'ı güncelle
+        slotCount = size;
         slotPositions = new Vector3[size];
         waitingCharacters = new Character[size];
         slotVisuals = new GameObject[size];
-    
+
         float startX = -(size - 1) * slotSpacing / 2f;
-    
+
         for (int i = 0; i < size; i++)
         {
             slotPositions[i] = new Vector3(
                 startX + i * slotSpacing, 
-                0, 
+                0.5f, // Character'ların yüksekliğiyle aynı (0.5f)
                 0f
             );
         }
-    
+
         CreateSlotVisuals();
     }
     
@@ -75,12 +81,17 @@ public class WaitingArea : MonoBehaviourSingleton<WaitingArea>
         if (slotIndex >= 0 && slotIndex < slotCount)
         {
             waitingCharacters[slotIndex] = character;
-            
+        
             // Parent the character to the slot
             character.transform.SetParent(slotVisuals[slotIndex].transform);
-            
-            // Center the character in the slot
-            character.transform.localPosition = Vector3.zero;
+        
+            // Center the character in the slot and set correct height
+            character.transform.localPosition = new Vector3(0, 0, 0); // Local pozisyonu sıfırla
+            character.transform.position = new Vector3(
+                character.transform.position.x,
+                0.5f, // Karakter yüksekliği
+                character.transform.position.z
+            );
         }
     }
     

@@ -130,7 +130,37 @@ public class LevelEditorWindow : EditorWindow
             // Color Selection
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Color Selection", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal();
             selectedColorIndex = EditorGUILayout.Popup("Current Color", selectedColorIndex, colorOptions);
+// Yeni eklenen refresh butonu
+            if (GUILayout.Button("Refresh Colors", GUILayout.Width(120)))
+            {
+                LoadColorData();
+                Debug.Log("ColorData refreshed!");
+    
+                // Bus konfigürasyonlarını da güncelle
+                if (currentLevel != null && busConfigurations != null)
+                {
+                    currentLevel.buses = busConfigurations.ToArray();
+                }
+    
+                // Grid renklerini yenile
+                if (currentLevel != null && gridTextures != null)
+                {
+                    for (int x = 0; x < currentLevel.width; x++)
+                    {
+                        for (int y = 0; y < currentLevel.height; y++)
+                        {
+                            string colorName = currentLevel.nodeColors[y * currentLevel.width + x];
+                            Color color = string.IsNullOrEmpty(colorName) || colorName == "X" ? Color.white : colorData.GetColor(colorName);
+                            gridTextures[x, y] = CreateColorTexture(color);
+                        }
+                    }
+                }
+    
+                Repaint(); // Pencerenin yeniden çizilmesini sağla
+            }
+            EditorGUILayout.EndHorizontal();
 
             // Bus Configuration Section
             EditorGUILayout.Space();

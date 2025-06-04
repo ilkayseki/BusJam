@@ -14,12 +14,33 @@ public class Character : MonoBehaviour
     private Sequence movementSequence;
     private CharacterAnimator characterAnimator;
 
-    // Yeni değişken ekleyelim
     private bool isInWaitingArea = false;
     
-    // Waiting Area'da olup olmadığını kontrol eden property
     public bool IsInWaitingArea => isInWaitingArea;
-    
+    private CharacterState _currentState = CharacterState.Idle;
+    public CharacterState CurrentState 
+    {
+        get => _currentState;
+        private set
+        {
+            _currentState = value;
+            OnStateChanged(value);
+        }
+    }
+    private void OnStateChanged(CharacterState newState)
+    {
+        switch (newState)
+        {
+            case CharacterState.Moving:
+                characterAnimator.SetRunning(true);
+                break;
+                
+            case CharacterState.Idle:
+            case CharacterState.InWaitingArea:
+                characterAnimator.SetRunning(false);
+                break;
+        }
+    }
     private void Awake()
     {
         rend = GetComponentInChildren<Renderer>();
@@ -33,6 +54,8 @@ public class Character : MonoBehaviour
         colorData = data;
         CharacterColor = node.NodeColor;
         UpdateColorVisual();
+        CurrentState = CharacterState.Idle;
+
     }
 
     private void UpdateColorVisual()
@@ -44,18 +67,16 @@ public class Character : MonoBehaviour
     private void OnMouseDown()
     {
         if (InputManager.Instance.IsInputBlocked || 
-            isMoving || 
-            isInWaitingArea ||
+            CurrentState != CharacterState.Idle ||
             !colorData.ShouldSpawnCharacter(CharacterColor)) 
             return;
 
         bus = BusManager.Instance.GetActiveBus();
         if (bus == null) return;
 
-       
         if (Vector3.Distance(bus.transform.position, BusManager.Instance.stopPosition.transform.position) > 0.1f)
         {
-            return; 
+            return;
         }
 
         InputManager.Instance.BlockInput(true);
@@ -69,7 +90,6 @@ public class Character : MonoBehaviour
 
         StartMovement();
     }
-    
 
     private void StartMovement()
     {
@@ -80,11 +100,9 @@ public class Character : MonoBehaviour
             return;
         }
 
-        isMoving = true;
-        characterAnimator.SetRunning(true); // Hareket başladığında running animasyonu
+        CurrentState = CharacterState.Moving;
         
         movementSequence = DOTween.Sequence();
-
         foreach (var node in path)
         {
             Vector3 targetPos = GetWorldPosition(node.Position);
@@ -93,9 +111,7 @@ public class Character : MonoBehaviour
 
         movementSequence.OnComplete(() => {
             currentNode.SetOccupied(false, null);
-            characterAnimator.SetRunning(false); // Hareket bittiğinde idle animasyonu
             HandleYZeroPosition();
-            isMoving = false;
             InputManager.Instance.BlockInput(false);
         });
     }
@@ -104,49 +120,44 @@ public class Character : MonoBehaviour
     {
         if (bus.BusColor == CharacterColor)
         {
-            // Renk uyumu varsa direkt yok ol
             DestroyCharacter();
         }
         else
         {
-            // Renk uyumu yoksa bekleme alanına git
             MoveToWaitingArea();
         }
     }
+
     private void MoveToWaitingArea()
     {
         int? slotIndex = WaitingArea.Instance.GetAvailableSlot();
         if (!slotIndex.HasValue)
         {
-            isMoving = false;
             Destroy(gameObject);
             return;
         }
 
-        isInWaitingArea = true;
+        CurrentState = CharacterState.Moving;
         
         Vector3 slotPosition = WaitingArea.Instance.GetSlotPosition(slotIndex.Value);
     
-        isMoving = true;
-        characterAnimator.SetRunning(true);
-        currentNode.SetOccupied(false, null);
         movementSequence = DOTween.Sequence();
         movementSequence.Append(transform.DOMove(slotPosition, 0.5f).SetEase(Ease.InOutQuad));
         movementSequence.OnComplete(() => {
             WaitingArea.Instance.OccupySlot(slotIndex.Value, this);
-            characterAnimator.SetRunning(false);
+            CurrentState = CharacterState.InWaitingArea;
+            currentNode.SetOccupied(false, null);
             characterAnimator.ResetRotation();
-            isMoving = false;
         });
     }
-
     private void DestroyCharacter()
     {
         if (currentNode != null) currentNode.SetOccupied(false, null);
         if (bus != null) bus.OccupySeat();
-        characterAnimator.ResetRotation(); // Otobüse bindiğinde yönü resetle (isteğe bağlı)
+        characterAnimator.ResetRotation();
         Destroy(gameObject);
     }
+
 
     private List<GridNode> FindPathToNearestYZero()
     {

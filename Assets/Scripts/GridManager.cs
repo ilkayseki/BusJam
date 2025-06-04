@@ -57,7 +57,7 @@ public class GridManager : MonoBehaviourSingleton<GridManager>
 
     private void CreateCharacter(GridNode node, Vector3 position, ColorData colorData)
     {
-        GameObject charObj = Instantiate(characterPrefab, position + Vector3.up * 0.5f, Quaternion.identity, transform);
+        GameObject charObj = Instantiate(characterPrefab, new Vector3(position.x,0.5f,position.z), Quaternion.identity, transform);
         Character character = charObj.GetComponent<Character>();
         character.Initialize(node, colorData);
         node.SetOccupied(true, character);
